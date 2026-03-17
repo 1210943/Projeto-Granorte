@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WMS Pro</title>
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+<!-- ═══ TELA DE LOGIN ═══════════════════════════════════════════════════════ -->
+<div id="login-screen" style="
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;background:#f5f4f0;padding:16px">
+  <div style="
+    background:#fff;border:1px solid #e0ddd5;border-radius:16px;
+    padding:36px 32px;width:100%;max-width:360px;
+    box-shadow:0 4px 24px rgba(0,0,0,.08)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:28px">
+      <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
+        <rect x="2" y="8" width="16" height="10" rx="2" fill="currentColor" opacity=".15" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M2 11h16M7 11v7M13 11v7" stroke="currentColor" stroke-width="1" opacity=".5"/>
+        <path d="M6 8V5a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:16px;font-weight:600">WMS Pro</span>
+    </div>
+    <div style="font-size:18px;font-weight:500;margin-bottom:4px">Entrar</div>
+    <div style="font-size:13px;color:#6b6a65;margin-bottom:24px">Acesso restrito a usuários autorizados</div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:500;color:#6b6a65;display:block;margin-bottom:4px">E-mail</label>
+      <input id="login-email" type="email" placeholder="seu@email.com"
+        style="width:100%;padding:9px 12px;border:1px solid #c8c5bc;border-radius:8px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:500;color:#6b6a65;display:block;margin-bottom:4px">Senha</label>
+      <input id="login-senha" type="password" placeholder="••••••••"
+        style="width:100%;padding:9px 12px;border:1px solid #c8c5bc;border-radius:8px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box">
+    </div>
+    <div id="login-erro" style="font-size:12px;color:#A32D2D;margin-bottom:12px;min-height:16px"></div>
+    <button id="btn-login" style="
+      width:100%;padding:10px;background:#1a1a1a;color:#fff;
+      border:none;border-radius:8px;font-size:14px;font-weight:500;
+      cursor:pointer;font-family:inherit;transition:opacity .15s"
+      onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+      Entrar
+    </button>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- ═══ APLICATIVO (oculto até autenticação) ════════════════════════════════ -->
+<div id="app-wrapper" style="display:none">
+
+<div class="nav">
+  <div class="nav-logo">
+    <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="16" height="10" rx="2" fill="currentColor" opacity=".15" stroke="currentColor" stroke-width="1.2"/><path d="M2 11h16M7 11v7M13 11v7" stroke="currentColor" stroke-width="1" opacity=".5"/><path d="M6 8V5a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+    WMS Pro
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('kpis')">KPIs</button>
+    <button class="nav-tab" onclick="showPage('loginterna')" id="tab-loginterna">Log. Interna<span class="nav-badge" id="badge-loginterna" style="display:none">0</span></button>
+    <button class="nav-tab" onclick="showPage('pcp')" id="tab-pcp">PCP<span class="nav-badge" id="badge-pcp" style="display:none">0</span></button>
+    <button class="nav-tab" onclick="showPage('relatorios')">Relatórios</button>
+    <button class="nav-tab" onclick="showPage('config')">Config</button>
+  </div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0">
+    <span id="nav-user-email" style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button id="btn-logout" class="btn btn-sm" style="font-size:11px;padding:3px 9px">Sair</button>
+  </div>
+</div>
+<div class="turno-bar" id="turno-bar"></div>
+
+<div id="page-dashboard" class="page active">
+  <div id="dash-alerts"></div>
+  <div class="row row-4" style="margin-bottom:10px" id="metrics-row"></div>
+  <div class="row row-2" style="margin-bottom:10px">
+    <div class="card"><div class="section-title">Capacidade hoje + notificações</div><div id="cap-bar"></div><div id="notif-lista" style="margin-top:10px"></div></div>
+    <div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="section-title" style="margin-bottom:0">Indicadores de Materiais</div><span style="font-size:11px;color:var(--text2)">Estoque atual</span></div><div id="materiais-indicadores"></div></div>
+  </div>
+  <div class="row row-2" style="margin-bottom:10px">
+    <div class="card"><div class="section-title">Calendário de Descargas</div><div id="calendario-dash"></div></div>
+    <div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="section-title" style="margin-bottom:0">Próximas descargas</div><span style="font-size:11px;color:var(--text2)">Por ordem de chegada</span></div><div id="proximas"></div></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="section-title" style="margin-bottom:0">KPIs do mês</div>
+      <button class="btn btn-sm" onclick="showPage('kpis')" style="font-size:12px">Ver completo →</button>
+    </div>
+    <div class="row row-4" id="dash-kpi-mini"></div>
+    <div class="row row-2" style="margin-top:10px">
+      <div style="position:relative;height:130px"><canvas id="dash-chart-semana"></canvas></div>
+      <div style="position:relative;height:130px"><canvas id="dash-chart-ocup"></canvas></div>
+    </div>
+  </div>
+  <div class="card"><div class="section-title">Estoque atual por baia</div><div id="estoque-resumo"></div></div>
+</div>
+
+<div id="page-kpis" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:600">Dashboard de KPIs</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:12px;color:var(--text2)">Período:</span>
+      <select id="kpi-periodo" onchange="renderKPIs()" style="width:140px;font-size:12px">
+        <option value="7">Últimos 7 dias</option>
+        <option value="30" selected>Últimos 30 dias</option>
+        <option value="90">Últimos 90 dias</option>
+        <option value="365">Último ano</option>
+      </select>
+    </div>
+  </div>
+  <div class="row row-4" style="margin-bottom:12px" id="kpi-cards"></div>
+  <div class="row row-2" style="margin-bottom:12px">
+    <div class="card">
+      <div class="section-title">Entradas por semana (ton)</div>
+      <div style="position:relative;height:220px"><canvas id="chart-entradas"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Saídas por semana (ton)</div>
+      <div style="position:relative;height:220px"><canvas id="chart-saidas"></canvas></div>
+    </div>
+  </div>
+  <div class="row row-2" style="margin-bottom:12px">
+    <div class="card">
+      <div class="section-title">Ranking de fornecedores (ton recebidas)</div>
+      <div style="position:relative;height:220px"><canvas id="chart-fornecedores"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Taxa de divergências por fornecedor (%)</div>
+      <div style="position:relative;height:220px"><canvas id="chart-divergencias"></canvas></div>
+    </div>
+  </div>
+  <div class="row row-2" style="margin-bottom:12px">
+    <div class="card">
+      <div class="section-title">Ocupação das baias (%)</div>
+      <div style="position:relative;height:220px"><canvas id="chart-baias"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Distribuição por material</div>
+      <div style="position:relative;height:220px"><canvas id="chart-materiais-pie"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Desempenho por turno</div>
+    <div id="kpi-turnos-table"></div>
+  </div>
+</div>
+
+<div id="page-loginterna" class="page">
+  <div class="subtab-bar">
+    <button class="subtab subtab-active" id="subtab-loginterna-agendamento" onclick="showSubTab('loginterna','agendamento')">Agendamento</button>
+    <button class="subtab" id="subtab-loginterna-recebimento" onclick="showSubTab('loginterna','recebimento')">Recebimento<span class="nav-badge" id="badge-rec" style="display:none">0</span></button>
+    <button class="subtab" id="subtab-loginterna-depositos" onclick="showSubTab('loginterna','depositos')">Dep. & Baias</button>
+    <button class="subtab" id="subtab-loginterna-movimentacoes" onclick="showSubTab('loginterna','movimentacoes')">Movimentações</button>
+    <button class="subtab" id="subtab-loginterna-transferencias" onclick="showSubTab('loginterna','transferencias')">Ag. Transferência<span class="nav-badge" id="badge-transf" style="display:none">0</span></button>
+    <button class="subtab" id="subtab-loginterna-ocorrencias" onclick="showSubTab('loginterna','ocorrencias')">Ocorrências<span class="nav-badge" id="badge-ocorr" style="display:none">0</span></button>
+  </div>
+
+  <div id="subsec-loginterna-agendamento">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:15px;font-weight:600">Agendamento de Descargas</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-agendar')">+ Nova descarga</button>
+  </div>
+  <div id="agenda-lista"></div>
+  </div>
+
+  <div id="subsec-loginterna-recebimento" style="display:none">
+<div style="font-size:15px;font-weight:600;margin-bottom:4px">Recebimento de Cargas</div>
+  <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Confirme chegada e alocação nas baias.</div>
+  <div id="rec-pendentes"></div>
+  <div class="divider"></div>
+  <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">Histórico</div>
+  <div id="rec-historico"></div>
+  </div>
+
+  <div id="subsec-loginterna-depositos" style="display:none">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:15px;font-weight:600">Depósitos &amp; Baias</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-sm" onclick="openModal('modal-deposito')">+ Depósito</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-baia')">+ Baia</button>
+    </div>
+  </div>
+  <div id="depositos-lista"></div>
+  </div>
+
+  <div id="subsec-loginterna-movimentacoes" style="display:none">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:15px;font-weight:600">Histórico de Movimentações</div>
+    <select id="filtro-baia-mov" style="width:200px;font-size:12px" onchange="renderMov()"><option value="">Todas as baias</option></select>
+  </div>
+  <div class="card"><div id="mov-lista"></div></div>
+  </div>
+
+  <div id="subsec-loginterna-transferencias" style="display:none">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:15px;font-weight:600">Materiais Aguardando Transferência</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-transferencia')">+ Novo</button>
+  </div>
+  <div id="transf-alerts"></div>
+  <div class="card"><div id="transferencias-lista"></div></div>
+  </div>
+
+  <div id="subsec-loginterna-ocorrencias" style="display:none">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:600">Ocorrências e Não Conformidades</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-ocorrencia')">+ Registrar ocorrência</button>
+  </div>
+  <div id="ocorr-resumo" class="row row-4" style="margin-bottom:12px"></div>
+  <div class="row row-2" style="margin-bottom:12px">
+    <div class="card">
+      <div class="section-title">Ocorrências em aberto</div>
+      <div id="ocorr-abertas"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Ranking de fornecedores problemáticos</div>
+      <div id="ocorr-ranking"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Histórico completo</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="ocorr-filtro-tipo" onchange="renderOcorrencias()" style="font-size:12px;width:160px">
+        <option value="">Todos os tipos</option>
+        <option value="carga_avariada">Carga avariada</option>
+        <option value="divergencia_peso">Divergência de peso</option>
+        <option value="doc_incorreta">Documentação incorreta</option>
+        <option value="atraso">Atraso do fornecedor</option>
+        <option value="qualidade">Problema de qualidade</option>
+        <option value="outro">Outro</option>
+      </select>
+      <select id="ocorr-filtro-status" onchange="renderOcorrencias()" style="font-size:12px;width:140px">
+        <option value="">Todos os status</option>
+        <option value="aberta">Aberta</option>
+        <option value="em_analise">Em análise</option>
+        <option value="resolvida">Resolvida</option>
+      </select>
+    </div>
+    <div id="ocorr-historico"></div>
+  </div>
+  </div>
+</div>
+
+<div id="page-pcp" class="page">
+  <div class="subtab-bar">
+    <button class="subtab subtab-active" id="subtab-pcp-fornecedores" onclick="showSubTab('pcp','fornecedores')">Fornecedores</button>
+    <button class="subtab" id="subtab-pcp-estoque" onclick="showSubTab('pcp','estoque')">Estoque</button>
+    <button class="subtab" id="subtab-pcp-baixa" onclick="showSubTab('pcp','baixa')">Baixa</button>
+    <button class="subtab" id="subtab-pcp-materiais" onclick="showSubTab('pcp','materiais')">Materiais</button>
+    <button class="subtab" id="subtab-pcp-conferencia" onclick="showSubTab('pcp','conferencia')">Conferência Diária<span class="nav-badge" id="badge-conf" style="display:none">0</span></button>
+    <button class="subtab" id="subtab-pcp-pcp" onclick="showSubTab('pcp','pcp')">Acerto de Peso</button>
+    <button class="subtab" id="subtab-pcp-consumo" onclick="showSubTab('pcp','consumo')">KPI Consumo</button>
+  </div>
+
+  <div id="subsec-pcp-fornecedores">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:15px;font-weight:600">Fornecedores</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-fornecedor')">+ Fornecedor</button>
+  </div>
+  <div class="card"><div id="forn-lista"></div></div>
+  </div>
+
+  <div id="subsec-pcp-estoque" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:15px;font-weight:600">Controle de Estoque</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-sm" id="btn-view-estoque" onclick="toggleEstoqueView()" style="font-size:12px">📦 Visão por Produto</button>
+      <button class="btn btn-primary btn-sm" onclick="openEntradaManual()">+ Lançar manual</button>
+    </div>
+  </div>
+  <!-- Filtros -->
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <input type="text" id="est-busca" placeholder="🔍 Buscar material, fornecedor, lote ou baia..." oninput="renderEstoque()" style="flex:1;min-width:200px;font-size:13px">
+    <select id="est-filtro-dep" onchange="renderEstoque()" style="font-size:12px;width:150px">
+      <option value="">Todos os depósitos</option>
+    </select>
+    <select id="est-filtro-mat" onchange="renderEstoque()" style="font-size:12px;width:160px">
+      <option value="">Todos os materiais</option>
+    </select>
+  </div>
+  <!-- Resumo rápido -->
+  <div id="est-resumo-cards" class="row row-4" style="margin-bottom:10px"></div>
+  <!-- Tabela / visão por produto -->
+  <div class="card">
+    <div id="estoque-lista"></div>
+  </div>
+</div>
+
+  <div id="subsec-pcp-baixa" style="display:none">
+<div style="font-size:15px;font-weight:600;margin-bottom:12px">Baixa de Estoque</div>
+  <div class="row row-2">
+    <div class="card">
+      <div class="section-title">Registrar baixa</div>
+      <div class="form-group"><div class="form-label">Baia</div><select id="baixa-baia"></select></div>
+      <div class="form-group"><div class="form-label">Ordem de Produção (OP)</div><input type="text" id="baixa-op" placeholder="Ex: OP-2024-001"></div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Número da NF</div><input type="text" id="baixa-nf" placeholder="Ex: NF-00123"></div>
+        <div><div class="form-label">N° do Lote</div><input type="text" id="baixa-lote" placeholder="Ex: L2024-001"></div>
+      </div>
+      <div class="form-group"><div class="form-label">Tipo de baixa</div><select id="baixa-tipo" onchange="toggleBaixaQtd()"><option value="total">Total</option><option value="parcial">Parcial</option></select></div>
+      <div class="form-group" id="baixa-qtd-wrap" style="display:none"><div class="form-label">Quantidade (ton)</div><input type="number" id="baixa-qtd" min="0.01" step="0.01" placeholder="0.00"></div>
+      <div class="form-group"><div class="form-label">Operador responsável</div><select id="baixa-operador"></select></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="registrarBaixa()">Registrar baixa</button>
+      <div id="baixa-feedback" style="margin-top:8px"></div>
+    </div>
+    <div class="card"><div class="section-title">Histórico de baixas</div><div id="historico-baixas"></div></div>
+  </div>
+  </div>
+
+  <div id="subsec-pcp-materiais" style="display:none">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:15px;font-weight:600">Cadastro de Materiais</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-material')">+ Material</button>
+  </div>
+  <div class="card"><div id="materiais-lista"></div></div>
+  </div>
+
+  <div id="subsec-pcp-conferencia" style="display:none">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:600">Conferência do Dia</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-conferencia')">+ Nova conferência</button>
+  </div>
+  <div class="row row-4" style="margin-bottom:12px" id="conf-resumo-cards"></div>
+  <div class="row row-2" style="margin-bottom:12px">
+    <div class="card">
+      <div class="section-title">Pendentes / Em investigação</div>
+      <div id="conf-pendentes"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Conferências de hoje</div>
+      <div id="conf-hoje"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Histórico completo</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="conf-filtro-status" onchange="renderConferencia()" style="font-size:12px;width:160px">
+        <option value="">Todos os status</option>
+        <option value="conforme">Conforme</option>
+        <option value="divergencia">Com divergência</option>
+        <option value="investigando">Em investigação</option>
+        <option value="resolvida">Resolvida</option>
+      </select>
+      <input type="date" id="conf-filtro-data" onchange="renderConferencia()" style="font-size:12px;width:150px">
+    </div>
+    <div id="conf-historico"></div>
+  </div>
+  </div>
+
+  <div id="subsec-pcp-pcp" style="display:none">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:600">PCP — Acerto de Peso</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-acerto-peso')">+ Registrar acerto</button>
+  </div>
+  <div class="row row-4" style="margin-bottom:12px" id="pcp-resumo-cards"></div>
+  <div class="row row-2" style="margin-bottom:12px">
+    <div class="card">
+      <div class="section-title">Divergência média por produto (%)</div>
+      <div id="pcp-diverg-lista"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Média kg por big bag (por produto)</div>
+      <div id="pcp-bigbag-media"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Histórico de acertos</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="pcp-filtro-produto" onchange="renderPCP()" style="font-size:12px;width:160px">
+        <option value="">Todos os produtos</option>
+      </select>
+      <select id="pcp-filtro-mes" onchange="renderPCP()" style="font-size:12px;width:150px">
+        <option value="">Todos os meses</option>
+      </select>
+    </div>
+    <div id="pcp-historico"></div>
+  </div>
+  </div>
+</div>
+  <div id="subsec-pcp-consumo" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:14px;font-weight:600">KPI de Consumo de Materiais</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <select id="kpi-consumo-mat" onchange="renderKPIConsumo()" style="font-size:12px;width:180px">
+          <option value="">Todos os materiais</option>
+        </select>
+        <select id="kpi-consumo-periodo" onchange="renderKPIConsumo()" style="font-size:12px;width:140px">
+          <option value="semana">Esta semana</option>
+          <option value="mes" selected>Este mês</option>
+          <option value="ano">Este ano</option>
+          <option value="tudo">Todo o período</option>
+        </select>
+      </div>
+    </div>
+    <!-- Cards globais -->
+    <div class="row row-4" style="margin-bottom:12px" id="kpi-consumo-cards"></div>
+    <!-- Gráficos -->
+    <div class="row row-2" style="margin-bottom:12px">
+      <div class="card">
+        <div class="section-title">Consumo por semana (ton)</div>
+        <div style="position:relative;height:200px"><canvas id="chart-consumo-semana"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Consumo por material no período</div>
+        <div style="position:relative;height:200px"><canvas id="chart-consumo-mat"></canvas></div>
+      </div>
+    </div>
+    <!-- Tabela detalhada por material -->
+    <div class="card">
+      <div class="section-title">Detalhamento por material</div>
+      <div id="kpi-consumo-tabela"></div>
+    </div>
+    <!-- Histórico de baixas filtrado -->
+    <div class="card" style="margin-top:10px">
+      <div class="section-title">Histórico de baixas no período</div>
+      <div id="kpi-consumo-historico"></div>
+    </div>
+  </div>
+
+<div id="page-relatorios" class="page">
+  <div style="font-size:15px;font-weight:600;margin-bottom:14px">Relatórios</div>
+  <div class="row row-3" style="margin-bottom:12px">
+    <div class="card" style="text-align:center;cursor:pointer" onclick="gerarRelatorio('entradas')">
+      <div style="font-size:28px;margin-bottom:8px">📥</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Relatório de Entradas</div>
+      <div style="font-size:12px;color:var(--text2)">Todas as descargas recebidas</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Exportar Excel</button>
+    </div>
+    <div class="card" style="text-align:center;cursor:pointer" onclick="gerarRelatorio('saidas')">
+      <div style="font-size:28px;margin-bottom:8px">📤</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Relatório de Saídas</div>
+      <div style="font-size:12px;color:var(--text2)">Baixas de estoque realizadas</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Exportar Excel</button>
+    </div>
+    <div class="card" style="text-align:center;cursor:pointer" onclick="gerarRelatorio('ops')">
+      <div style="font-size:28px;margin-bottom:8px">📋</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Relatório de OPs</div>
+      <div style="font-size:12px;color:var(--text2)">Ordens de produção vinculadas</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Exportar Excel</button>
+    </div>
+    <div class="card" style="text-align:center;cursor:pointer" onclick="gerarRelatorio('estoque')">
+      <div style="font-size:28px;margin-bottom:8px">🏭</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Estoque Atual</div>
+      <div style="font-size:12px;color:var(--text2)">Posição atual de todas as baias</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Exportar Excel</button>
+    </div>
+    <div class="card" style="text-align:center;cursor:pointer" onclick="gerarRelatorio('turnos')">
+      <div style="font-size:28px;margin-bottom:8px">🔄</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Relatório por Turno</div>
+      <div style="font-size:12px;color:var(--text2)">Desempenho por turno A/B/C</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Exportar Excel</button>
+    </div>
+    <div class="card" style="text-align:center;cursor:pointer" onclick="gerarRelatorio('movimentacoes')">
+      <div style="font-size:28px;margin-bottom:8px">📊</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Movimentações</div>
+      <div style="font-size:12px;color:var(--text2)">Histórico completo por baia</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Exportar Excel</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Conversor kg ↔ Toneladas</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div><div class="form-label">Valor</div><input type="number" id="conv-valor" placeholder="0.00" step="0.001" style="width:140px" oninput="converter()"></div>
+      <div><div class="form-label">Unidade de entrada</div>
+        <select id="conv-unid" style="width:160px" onchange="converter()">
+          <option value="ton">Toneladas (ton)</option>
+          <option value="kg">Quilogramas (kg)</option>
+        </select>
+      </div>
+      <div style="font-size:24px;color:var(--text2);padding-top:16px">=</div>
+      <div><div class="form-label">Resultado</div><div id="conv-resultado" style="font-size:20px;font-weight:600;color:#1D3557;padding-top:4px">—</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px">1 tonelada = 1.000 kg  |  Capacidade diária padrão: 160 ton = 160.000 kg</div>
+  </div>
+</div>
+
+<div id="page-config" class="page">
+  <div style="font-size:15px;font-weight:600;margin-bottom:14px">Configurações</div>
+  <div class="row row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="section-title">Turno ativo</div>
+      <div class="form-group"><div class="form-label">Selecionar turno</div>
+        <select id="cfg-turno"><option value="">— Selecionar —</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Operador de turno</div><select id="cfg-operador"><option value="">— Selecionar —</option></select></div>
+      <button class="btn btn-primary btn-sm" onclick="salvarTurno()">Ativar turno</button>
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Cadastrar novo turno</div>
+      <div class="form-row form-row-2" style="margin-bottom:8px">
+        <div><div class="form-label">Nome do turno *</div><input type="text" id="turno-nome" placeholder="Ex: Turno A, Manhã..."></div>
+        <div><div class="form-label">Horário início</div><input type="time" id="turno-inicio" value="06:00"></div>
+      </div>
+      <div class="form-row form-row-2" style="margin-bottom:8px">
+        <div><div class="form-label">Horário fim</div><input type="time" id="turno-fim" value="14:00"></div>
+        <div><div class="form-label">Cor / identificação</div>
+          <select id="turno-cor">
+            <option value="blue">Azul</option>
+            <option value="green">Verde</option>
+            <option value="amber">Amarelo</option>
+            <option value="red">Vermelho</option>
+            <option value="purple">Roxo</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addTurno()" style="margin-bottom:12px">+ Adicionar turno</button>
+      <div id="turnos-lista"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Operadores</div>
+      <div class="form-row form-row-2" style="margin-bottom:8px">
+        <input type="text" id="op-nome" placeholder="Nome do operador">
+        <input type="text" id="op-cargo" placeholder="Cargo / função">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addOperador()" style="margin-bottom:12px">+ Adicionar</button>
+      <div id="op-lista"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="section-title">Capacidade diária (toneladas)</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input type="number" id="cfg-cap" min="1" step="1" style="max-width:120px">
+      <button class="btn btn-primary btn-sm" onclick="salvarCap()">Salvar</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="section-title">Tolerância de atraso para alertas</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input type="range" id="cfg-tolerancia" min="15" max="120" step="15" value="30" style="flex:1" oninput="document.getElementById('tol-val').textContent=this.value+' min'">
+      <span id="tol-val" style="font-size:13px;font-weight:500;min-width:60px">30 min</span>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="section-title">Alerta de descargas por email</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Configure um email e horario para receber um relatorio diario de atrasos e descargas pendentes. O sistema abrira seu cliente de email automaticamente no horario definido.</div>
+    <div class="form-row form-row-2" style="margin-bottom:8px">
+      <div><div class="form-label">Email de destino</div><input type="email" id="cfg-email" placeholder="email@empresa.com"></div>
+      <div><div class="form-label">Horario do alerta</div><input type="time" id="cfg-horario-alerta" value="07:00"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <input type="checkbox" id="cfg-alerta-ativo" style="width:15px;height:15px;cursor:pointer">
+      <label for="cfg-alerta-ativo" style="font-size:13px;cursor:pointer">Ativar alerta automatico no horario definido</label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" onclick="salvarEmailConfig()">Salvar configuracao</button>
+      <button class="btn btn-sm" onclick="enviarAlertaEmail()">Enviar alerta agora</button>
+      <button class="btn btn-sm" onclick="verPreviewEmail()">Pre-visualizar</button>
+    </div>
+    <div id="email-preview" style="display:none;margin-top:10px;background:var(--bg3);border-radius:var(--radius);padding:10px;font-size:11px;white-space:pre;overflow-x:auto;max-height:200px;overflow-y:auto"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Dados do sistema</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="exportarDados()">Exportar backup (JSON)</button>
+      <button class="btn btn-sm" onclick="document.getElementById('importar-input').click()">Importar backup</button>
+      <input type="file" id="importar-input" accept=".json" style="display:none" onchange="importarDados(event)">
+      <button class="btn btn-sm btn-danger" onclick="resetarDados()">Limpar todos os dados</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">Os dados são salvos automaticamente neste navegador. Use exportar para fazer backup.</div>
+  </div>
+</div>
+
+<!-- MODAIS -->
+<div class="modal-overlay hidden" id="modal-agendar">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nova descarga</div><button class="btn btn-sm" onclick="closeModal('modal-agendar')">✕</button></div>
+    <div class="modal-body">
+      <div id="ag-cap-alert"></div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Fornecedor cadastrado</div><select id="ag-forn-sel" onchange="preencherForn()"><option value="">— Selecionar —</option></select></div>
+        <div><div class="form-label">Ou digitar nome *</div><input type="text" id="ag-fornecedor" placeholder="Nome do fornecedor"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Material *</div>
+          <select id="ag-material-sel" onchange="syncMatSel()"><option value="">Selecionar cadastrado</option></select>
+          <input type="text" id="ag-material" placeholder="Ou digitar material" style="margin-top:4px">
+        </div>
+        <div><div class="form-label">Número da NF</div><input type="text" id="ag-nf" placeholder="Ex: NF-00123"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr">
+        <div><div class="form-label">Quantidade *</div><input type="number" id="ag-toneladas" min="0.01" step="0.01" placeholder="0.00" oninput="checkCapModal()"></div>
+        <div><div class="form-label">Unidade</div><select id="ag-unidade"><option value="ton">Toneladas (ton)</option><option value="kg">Quilogramas (kg)</option></select></div>
+        <div><div class="form-label">Data *</div><input type="date" id="ag-data" oninput="checkCapModal()"></div>
+        <div><div class="form-label">Previsão hora *</div><input type="time" id="ag-hora"></div>
+        <div><div class="form-label">Lote</div><input type="text" id="ag-lote" placeholder="L2024-001"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Baia sugerida</div><select id="ag-baia"><option value="">— Sem sugestão —</option></select></div>
+        <div><div class="form-label">Operador responsável</div><select id="ag-operador"><option value="">— Selecionar —</option></select></div>
+      </div>
+      <div class="form-group"><div class="form-label">Observações</div><textarea id="ag-obs" rows="2" placeholder="Informações adicionais..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-agendar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="agendarDescarga()">Agendar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-chegada">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Confirmar chegada</div><button class="btn btn-sm" onclick="closeModal('modal-chegada')">✕</button></div>
+    <div class="modal-body">
+      <div id="chegada-resumo"></div>
+      <div class="divider"></div>
+      <div class="form-row form-row-3">
+        <div><div class="form-label">Hora real de chegada</div><input type="time" id="ch-hora"></div>
+        <div><div class="form-label">Toneladas reais *</div><input type="number" id="ch-ton" step="0.01" min="0.01" placeholder="0.00" oninput="checkDiv()"></div>
+        <div><div class="form-label">Número da NF</div><input type="text" id="ch-nf" placeholder="NF-00123"></div>
+      </div>
+      <div id="ch-div-alert"></div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Lote (confirmar)</div><input type="text" id="ch-lote"></div>
+        <div><div class="form-label">Placa do veículo</div><input type="text" id="ch-placa" placeholder="ABC-1234"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Motorista</div><input type="text" id="ch-motorista" placeholder="Nome"></div>
+        <div><div class="form-label">Operador responsável</div><select id="ch-operador"><option value="">— Selecionar —</option></select></div>
+      </div>
+      <div class="form-group"><div class="form-label">Observações</div><textarea id="ch-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-chegada')">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarChegada()">Confirmar chegada</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-alocar">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Alocar carga na baia</div><button class="btn btn-sm" onclick="closeModal('modal-alocar')">✕</button></div>
+    <div class="modal-body">
+      <div id="alocar-resumo"></div>
+      <div class="divider"></div>
+      <div id="alocar-sug"></div>
+      <div class="form-group"><div class="form-label">Baia de destino *</div><select id="alocar-baia-sel" onchange="updateAlocarInfo()"><option value="">— Selecionar —</option></select></div>
+      <div id="alocar-baia-info"></div>
+      <div class="form-group"><div class="form-label">Observações de armazenamento</div><textarea id="alocar-obs" rows="2"></textarea></div>
+      <div id="alocar-alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-alocar')">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarAlocacao()">Confirmar alocação</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-rec-det">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header"><div class="modal-title" id="rec-det-title">Recebimento</div><button class="btn btn-sm" onclick="closeModal('modal-rec-det')">✕</button></div>
+    <div class="modal-body" id="rec-det-body"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-rec-det')">Fechar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-baia-det">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title" id="baia-det-title">Baia</div><button class="btn btn-sm" onclick="closeModal('modal-baia-det')">✕</button></div>
+    <div class="modal-body" id="baia-det-body"></div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-primary btn-sm" id="btn-editar-baia-from-det" onclick="abrirEditarBaia(document.getElementById('modal-baia-det')._baiaId)">Editar baia</button>
+      <button class="btn" onclick="closeModal('modal-baia-det')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-forn-det">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title" id="forn-det-title">Fornecedor</div><button class="btn btn-sm" onclick="closeModal('modal-forn-det')">✕</button></div>
+    <div class="modal-body" id="forn-det-body"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-forn-det')">Fechar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-material">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Cadastrar Material</div><button class="btn btn-sm" onclick="closeModal('modal-material')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Nome do material *</div><input type="text" id="mat-nome" placeholder="Ex: Trigo, Soja, Farinha..."></div>
+        <div><div class="form-label">Unidade padrão</div><select id="mat-unidade"><option value="ton">Toneladas (ton)</option><option value="kg">Quilogramas (kg)</option></select></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Código interno</div><input type="text" id="mat-codigo" placeholder="Ex: MP-001"></div>
+        <div><div class="form-label">Categoria</div><input type="text" id="mat-categoria" placeholder="Ex: Grão, Farinha, Óleo..."></div>
+      </div>
+      <div class="form-group"><div class="form-label">Observações</div><textarea id="mat-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-material')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarMaterial()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-transferencia">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header"><div class="modal-title" id="transf-modal-title">Nova Transferência</div><button class="btn btn-sm" onclick="closeModal('modal-transferencia')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Fornecedor *</div><select id="tr-forn-sel" onchange="preencherFornTransf()"><option value="">— Selecionar cadastrado —</option></select></div>
+        <div><div class="form-label">Ou digitar fornecedor</div><input type="text" id="tr-fornecedor" placeholder="Nome do fornecedor"></div>
+      </div>
+      <div class="form-row form-row-3">
+        <div><div class="form-label">Nº da Nota Fiscal *</div><input type="text" id="tr-nf" placeholder="NF-00123"></div>
+        <div><div class="form-label">Nº do MP (material)</div><input type="text" id="tr-mp" placeholder="MP-001"></div>
+        <div><div class="form-label">Nº do Mapa (rastreio)</div><input type="text" id="tr-mapa" placeholder="MAPA-001"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Material</div><select id="tr-material"><option value="">— Selecionar —</option></select></div>
+        <div><div class="form-label">Quantidade</div><input type="number" id="tr-qtd" min="0.01" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Unidade</div><select id="tr-unidade"><option value="ton">Toneladas (ton)</option><option value="kg">Quilogramas (kg)</option></select></div>
+        <div><div class="form-label">Hora prevista de chegada</div><input type="time" id="tr-hora" value="08:00"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Data de chegada na matriz *</div><input type="date" id="tr-data-matriz"></div>
+        <div><div class="form-label">Data de transferência para cá</div><input type="date" id="tr-data-transf" oninput="verificarDataTransf()"></div>
+      </div>
+      <div id="tr-data-alert"></div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Baia sugerida</div><select id="tr-baia"><option value="">— Sem sugestão —</option></select></div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:20px">
+          <input type="checkbox" id="tr-analisado" style="width:16px;height:16px;cursor:pointer">
+          <label for="tr-analisado" style="font-size:13px;cursor:pointer;color:var(--text)">Carga já foi analisada</label>
+        </div>
+      </div>
+      <div class="form-group"><div class="form-label">Observações</div><textarea id="tr-obs" rows="2" placeholder="Informações adicionais..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-transferencia')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarTransferencia()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay hidden" id="modal-editar-transf">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header"><div class="modal-title">Editar Transferencia</div><button class="btn btn-sm" onclick="closeModal('modal-editar-transf')">x</button></div>
+    <div class="modal-body">
+      <div id="edit-transf-info" style="background:var(--bg3);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;font-size:13px"></div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Fornecedor</div><input type="text" id="edit-tr-fornecedor"></div>
+        <div><div class="form-label">Material</div><input type="text" id="edit-tr-material"></div>
+      </div>
+      <div class="form-row form-row-3">
+        <div><div class="form-label">NF</div><input type="text" id="edit-tr-nf"></div>
+        <div><div class="form-label">N do MP</div><input type="text" id="edit-tr-mp"></div>
+        <div><div class="form-label">N do Mapa</div><input type="text" id="edit-tr-mapa"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Quantidade</div><input type="number" id="edit-tr-qtd" min="0.001" step="0.001"></div>
+        <div><div class="form-label">Unidade</div><select id="edit-tr-unidade"><option value="ton">Toneladas (ton)</option><option value="kg">Quilogramas (kg)</option></select></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Data chegada na matriz</div><input type="date" id="edit-tr-data-matriz"></div>
+        <div><div class="form-label">Data de transferencia</div><input type="date" id="edit-tr-data-transf"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Hora prevista</div><input type="time" id="edit-tr-hora"></div>
+        <div><div class="form-label">Baia sugerida</div><select id="edit-tr-baia"><option value="">Sem sugestao</option></select></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <input type="checkbox" id="edit-tr-analisado" style="width:16px;height:16px;cursor:pointer">
+        <label for="edit-tr-analisado" style="font-size:13px;cursor:pointer">Carga ja foi analisada</label>
+      </div>
+      <div class="form-group"><div class="form-label">Observacoes</div><textarea id="edit-tr-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-editar-transf')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEdicaoTransf()">Salvar alteracoes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-confirmar-receb-transf">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><div class="modal-title">Confirmar Recebimento</div><button class="btn btn-sm" onclick="closeModal('modal-confirmar-receb-transf')">x</button></div>
+    <div class="modal-body">
+      <div id="conf-transf-resumo" style="background:var(--bg3);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:13px"></div>
+      <div class="alert-bar alert-info" style="margin-bottom:14px">Ao confirmar, esta transferencia sera lancada automaticamente na aba <strong>Recebimento</strong> e o estoque sera alocado na baia selecionada.</div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Hora de chegada real</div><input type="time" id="conf-hora-real"></div>
+        <div><div class="form-label">Toneladas reais recebidas *</div><input type="number" id="conf-ton-real" step="0.001" min="0.001" placeholder="0.000"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Placa do veiculo</div><input type="text" id="conf-placa" placeholder="ABC-1234"></div>
+        <div><div class="form-label">Motorista</div><input type="text" id="conf-motorista" placeholder="Nome"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Baia de destino *</div><select id="conf-baia"><option value="">Selecionar baia</option></select></div>
+        <div><div class="form-label">Operador responsavel</div><select id="conf-operador"><option value="">Selecionar</option></select></div>
+      </div>
+      <div class="form-group"><div class="form-label">Observacoes</div><textarea id="conf-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-confirmar-receb-transf')">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarRecebimentoTransf()">Confirmar recebimento</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay hidden" id="modal-entrada-manual">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><div class="modal-title">Lançar estoque manual</div><button class="btn btn-sm" onclick="closeModal('modal-entrada-manual')">x</button></div>
+    <div class="modal-body">
+      <div class="alert-bar alert-info" style="margin-bottom:14px">Use para registrar materiais ja armazenados que ainda nao foram recebidos pelo sistema.</div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Baia *</div><select id="em-baia"><option value="">Selecionar baia</option></select></div>
+        <div><div class="form-label">Fornecedor *</div>
+          <select id="em-forn-sel" onchange="syncEmForn()"><option value="">Selecionar cadastrado</option></select>
+          <input type="text" id="em-fornecedor" placeholder="Ou digitar" style="margin-top:4px">
+        </div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Material</div>
+          <select id="em-mat-sel" onchange="syncEmMat()"><option value="">Selecionar cadastrado</option></select>
+          <input type="text" id="em-material" placeholder="Ou digitar" style="margin-top:4px">
+        </div>
+        <div><div class="form-label">Numero do Lote</div><input type="text" id="em-lote" placeholder="L2024-001"></div>
+      </div>
+      <div class="form-row form-row-3">
+        <div><div class="form-label">NF</div><input type="text" id="em-nf" placeholder="NF-00123"></div>
+        <div><div class="form-label">Quantidade *</div><input type="number" id="em-qtd" min="0.001" step="0.001" placeholder="0.000"></div>
+        <div><div class="form-label">Unidade</div><select id="em-unidade"><option value="ton">Toneladas</option><option value="kg">Quilogramas</option></select></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Big Bags</div><input type="number" id="em-bigbags" min="0" step="1" value="0" placeholder="0"></div>
+        <div><div class="form-label">Data de entrada</div><input type="date" id="em-data"></div>
+      </div>
+      <div class="form-group"><div class="form-label">Observacoes</div><textarea id="em-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-entrada-manual')">Cancelar</button>
+      <button class="btn btn-primary" onclick="lancarEstoqueManual()">Lancar estoque</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay hidden" id="modal-acerto-peso">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title" id="acerto-modal-title">Registrar Acerto de Peso</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-acerto-peso')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row form-row-3">
+        <div><div class="form-label">N° do Mapa *</div><input type="text" id="ap-mapa" placeholder="MAPA-001"></div>
+        <div><div class="form-label">N° do Lote *</div><input type="text" id="ap-lote" placeholder="L2024-001"></div>
+        <div><div class="form-label">Data do acerto</div><input type="date" id="ap-data"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Produto *</div>
+          <select id="ap-produto-sel" onchange="syncApProduto()"><option value="">Selecionar cadastrado</option></select>
+          <input type="text" id="ap-produto" placeholder="Ou digitar produto" style="margin-top:4px">
+        </div>
+        <div><div class="form-label">Operador</div><select id="ap-operador"><option value="">Selecionar</option></select></div>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Antes do acerto</div>
+      <div class="form-row form-row-3">
+        <div><div class="form-label">Qtd de big bags carregados</div><input type="number" id="ap-bb-qtd" min="0" step="1" placeholder="0" oninput="calcAcerto()"></div>
+        <div><div class="form-label">Kg padrão por big bag</div><input type="number" id="ap-bb-kg" min="1" step="1" value="1000" oninput="calcAcerto()"></div>
+        <div><div class="form-label">Total calculado (kg)</div><input type="text" id="ap-bb-total" readonly style="background:var(--bg3);font-weight:600"></div>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Quantidade real carregada</div>
+      <div class="form-row form-row-3">
+        <div><div class="form-label">Qtd real carregada (kg) *</div><input type="number" id="ap-qtd-real" min="0" step="0.001" placeholder="0.000" oninput="calcAcerto()"></div>
+        <div><div class="form-label">Diferença (kg)</div><input type="text" id="ap-diferenca" readonly style="background:var(--bg3);font-weight:600"></div>
+        <div><div class="form-label">Kg real médio / BB</div><input type="text" id="ap-pct-diverg" readonly style="background:var(--bg3);font-weight:600;color:#1D9E75"></div>
+      </div>
+      <div id="ap-alerta-div"></div>
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Aplicar ajuste no estoque</div>
+      <div class="alert-bar alert-info" style="margin-bottom:10px">Se quiser que o sistema atualize a quantidade em estoque automaticamente com base na quantidade real, selecione a baia abaixo.</div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Baia a ajustar (opcional)</div>
+          <select id="ap-baia-ajuste"><option value="">Não ajustar estoque</option></select>
+        </div>
+        <div><div class="form-label">Lote a ajustar (opcional)</div>
+          <select id="ap-lote-ajuste"><option value="">Todos os lotes da baia</option></select>
+        </div>
+      </div>
+      <div id="ap-ajuste-preview" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
+      <div class="form-group"><div class="form-label">Observações</div><textarea id="ap-obs" rows="2" placeholder="Motivo do acerto, condições..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-acerto-peso')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAcertoPeso()">Registrar acerto</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-conferencia">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title" id="conf-modal-title">Nova Conferência</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-conferencia')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Data da conferência</div><input type="date" id="cf-data"></div>
+        <div><div class="form-label">Operador responsável</div><select id="cf-operador"><option value="">Selecionar</option></select></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Produto / Material *</div>
+          <select id="cf-produto-sel" onchange="preencherConfProduto()">
+            <option value="">Selecionar produto</option>
+          </select>
+        </div>
+        <div><div class="form-label">Qtd total no sistema (ton)</div>
+          <input type="text" id="cf-qtd-sistema" readonly style="background:var(--bg3);font-weight:600">
+        </div>
+      </div>
+      <div id="cf-baias-detalhe" style="font-size:12px;color:var(--text2);margin-bottom:10px;padding:8px;background:var(--bg3);border-radius:var(--radius);display:none"></div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Qtd conferida fisicamente (ton) *</div>
+          <input type="number" id="cf-qtd-fisica" step="0.001" min="0" placeholder="0.000" oninput="calcConferencia()">
+        </div>
+        <div><div class="form-label">Divergência encontrada</div>
+          <input type="text" id="cf-divergencia" readonly style="background:var(--bg3);font-weight:600">
+        </div>
+      </div>
+      <div id="cf-diverg-alert"></div>
+      <div class="form-group"><div class="form-label">Resultado</div>
+        <select id="cf-resultado">
+          <option value="conforme">Conforme — estoque correto</option>
+          <option value="divergencia">Com divergência</option>
+        </select>
+      </div>
+      <div class="form-group"><div class="form-label">Observações</div>
+        <textarea id="cf-obs" rows="2" placeholder="Observações gerais da conferência..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-conferencia')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarConferencia()">Salvar conferência</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-investigacao">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">Investigação de Divergência</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-investigacao')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="inv-resumo" style="background:var(--bg3);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;font-size:13px"></div>
+      <div class="form-group"><div class="form-label">Status da investigação</div>
+        <select id="inv-status">
+          <option value="investigando">Em investigação</option>
+          <option value="resolvida">Divergência resolvida</option>
+        </select>
+      </div>
+      <div class="form-group" id="inv-motivo-wrap"><div class="form-label">Motivo da divergência *</div>
+        <select id="inv-motivo">
+          <option value="">Selecionar motivo</option>
+          <option value="erro_balanca">Erro de balança</option>
+          <option value="erro_lancamento">Erro de lançamento no sistema</option>
+          <option value="furto">Furto / extravio</option>
+          <option value="perda_natural">Perda natural (evaporação/umidade)</option>
+          <option value="erro_medicao">Erro de medição na conferência</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><div class="form-label">Observações / comentário do motivo *</div>
+        <textarea id="inv-obs" rows="3" placeholder="Descreva o motivo identificado e as ações corretivas tomadas..."></textarea>
+      </div>
+      <div class="form-group" id="inv-ajuste-wrap" style="display:none">
+        <div class="form-label">Ajustar estoque no sistema?</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="checkbox" id="inv-ajustar" style="width:15px;height:15px;cursor:pointer" onchange="toggleInvAjuste()">
+          <label for="inv-ajustar" style="font-size:13px;cursor:pointer">Sim, corrigir quantidade no sistema para refletir realidade</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-investigacao')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarInvestigacao()">Salvar investigação</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-ocorrencia">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title" id="ocorr-modal-title">Registrar Ocorrência</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-ocorrencia')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Fornecedor *</div>
+          <select id="oc-forn-sel" onchange="syncOcForn()"><option value="">Selecionar cadastrado</option></select>
+          <input type="text" id="oc-fornecedor" placeholder="Ou digitar" style="margin-top:4px">
+        </div>
+        <div><div class="form-label">Descarga relacionada</div>
+          <select id="oc-descarga"><option value="">Nenhuma específica</option></select>
+        </div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Tipo de ocorrência *</div>
+          <select id="oc-tipo">
+            <option value="carga_avariada">Carga avariada</option>
+            <option value="divergencia_peso">Divergência de peso</option>
+            <option value="doc_incorreta">Documentação incorreta</option>
+            <option value="atraso">Atraso do fornecedor</option>
+            <option value="qualidade">Problema de qualidade</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div><div class="form-label">Gravidade</div>
+          <select id="oc-gravidade">
+            <option value="baixa">Baixa</option>
+            <option value="media" selected>Média</option>
+            <option value="alta">Alta</option>
+            <option value="critica">Crítica</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Data da ocorrência</div><input type="date" id="oc-data"></div>
+        <div><div class="form-label">NF relacionada</div><input type="text" id="oc-nf" placeholder="NF-00123"></div>
+      </div>
+      <div class="form-group"><div class="form-label">Descrição *</div><textarea id="oc-descricao" rows="3" placeholder="Descreva o problema encontrado..."></textarea></div>
+      <div class="form-group"><div class="form-label">Ação imediata tomada</div><textarea id="oc-acao" rows="2" placeholder="O que foi feito no momento..."></textarea></div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Responsável</div><select id="oc-operador"><option value="">Selecionar</option></select></div>
+        <div><div class="form-label">Status</div>
+          <select id="oc-status">
+            <option value="aberta">Aberta</option>
+            <option value="em_analise">Em análise</option>
+            <option value="resolvida">Resolvida</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-ocorrencia')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarOcorrencia()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-ocorr-detalhe">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header"><div class="modal-title" id="ocorr-det-title">Ocorrência</div><button class="btn btn-sm" onclick="closeModal('modal-ocorr-detalhe')">✕</button></div>
+    <div class="modal-body" id="ocorr-det-body"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-ocorr-detalhe')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-fornecedor">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="forn-modal-title">Novo fornecedor</div><button class="btn btn-sm" onclick="closeModal('modal-fornecedor')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Nome fantasia *</div><input type="text" id="fn-nome" placeholder="Ex: Fazenda Boa Vista"></div>
+        <div><div class="form-label">Razão social</div><input type="text" id="fn-razao" placeholder="Ex: Agro Silva Ltda"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">CNPJ</div><input type="text" id="fn-cnpj" placeholder="00.000.000/0000-00"></div>
+        <div><div class="form-label">Contato / telefone</div><input type="text" id="fn-tel" placeholder="(00) 00000-0000"></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Material habitual</div><input type="text" id="fn-material" placeholder="Ex: Trigo, Soja..."></div>
+        <div><div class="form-label">Avaliação</div><select id="fn-aval"><option value="5">★★★★★ Excelente</option><option value="4">★★★★ Bom</option><option value="3" selected>★★★ Regular</option><option value="2">★★ Ruim</option><option value="1">★ Péssimo</option></select></div>
+      </div>
+      <div class="form-group"><div class="form-label">Observações</div><textarea id="fn-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-fornecedor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarFornecedor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-deposito">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Novo depósito</div><button class="btn btn-sm" onclick="closeModal('modal-deposito')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><div class="form-label">Nome *</div><input type="text" id="dep-nome" placeholder="Ex: Galpão A"></div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Localização</div><input type="text" id="dep-local" placeholder="Ex: Setor Norte"></div>
+        <div><div class="form-label">Capacidade total (ton)</div><input type="number" id="dep-cap" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-deposito')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarDeposito()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay hidden" id="modal-editar-baia">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">Editar Baia</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-editar-baia')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="edit-baia-status-alert"></div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Nome da baia *</div><input type="text" id="edit-baia-nome" placeholder="Ex: Baia 01"></div>
+        <div><div class="form-label">Depósito</div><select id="edit-baia-dep"></select></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Capacidade (ton)</div><input type="number" id="edit-baia-cap" min="0" step="0.01" placeholder="0"></div>
+        <div><div class="form-label">Material sugerido</div><input type="text" id="edit-baia-mat" placeholder="Ex: Grãos, Farinha..."></div>
+      </div>
+      <div class="form-group"><div class="form-label">Localização no depósito</div><input type="text" id="edit-baia-loc" placeholder="Ex: Corredor 2, Lado direito"></div>
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Status da baia</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" id="btn-baia-ativa" onclick="setBaiaStatus('ativa')" style="border-color:#1D9E75;color:#1D9E75">✓ Ativa</button>
+        <button class="btn btn-sm" id="btn-baia-inutilizada" onclick="setBaiaStatus('inutilizada')" style="border-color:#EF9F27;color:#854F0B">⚠ Inutilizar</button>
+        <button class="btn btn-sm" id="btn-baia-manutencao" onclick="setBaiaStatus('manutencao')" style="border-color:#378ADD;color:#185FA5">🔧 Manutenção</button>
+      </div>
+      <div id="edit-baia-status-desc" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-danger btn-sm" onclick="excluirBaiaConfirm()">Deletar baia</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('modal-editar-baia')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarEdicaoBaia()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-baia">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nova baia</div><button class="btn btn-sm" onclick="closeModal('modal-baia')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Nome *</div><input type="text" id="baia-nome" placeholder="Ex: B-01"></div>
+        <div><div class="form-label">Depósito *</div><select id="baia-dep"><option value="">— Selecionar —</option></select></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><div class="form-label">Capacidade (ton)</div><input type="number" id="baia-cap" placeholder="0" step="0.01"></div>
+        <div><div class="form-label">Material sugerido</div><input type="text" id="baia-mat" placeholder="Ex: Grãos, Farinha..."></div>
+      </div>
+      <div class="form-group"><div class="form-label">Localização no depósito</div><input type="text" id="baia-loc" placeholder="Ex: Corredor 2, Lado direito"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-baia')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarBaia()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script type="module" src="script.js"></script>
+
+</div><!-- /app-wrapper -->
+</body>
+</html>
