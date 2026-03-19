@@ -62,8 +62,10 @@ function fmtDate(d){if(!d)return'—';const[y,m,day]=d.split('-');return`${day}/
 function fmtDT(d){if(!d)return'—';return new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
 
 function fmtKg(v){
+  // valores internos em toneladas → converter para kg (*1000)
   const n=Number(v)||0;
-  return n.toLocaleString('pt-BR',{maximumFractionDigits:3})+'kg';
+  const kg=n*1000;
+  return kg.toLocaleString('pt-BR',{maximumFractionDigits:0})+'kg';
 }
 function fmtKgInput(v){
   // formata enquanto o usuário digita: remove não-dígitos e aplica pontos de milhar
@@ -227,7 +229,7 @@ function abrirChegada(dcId){
 }
 function checkDiv(){
   const dc=S.descargas.find(d=>d.id===_chegadaId);if(!dc)return;
-  const real=parseKg(document.getElementById('ch-ton').value)||0;
+  const real=parseFloat(document.getElementById('ch-ton').value)||0;
   const diff=real-dc.toneladas;const el=document.getElementById('ch-div-alert');
   if(!real){el.innerHTML='';return;}
   if(Math.abs(diff)>0.1)el.innerHTML=`<div class="alert-bar alert-warning" style="margin-top:6px">Divergência: ${diff>0?'+':''}${fmtKg(diff)} (previsto ${fmtKg(dc.toneladas)}, real ${fmtKg(real)}).</div>`;
@@ -253,7 +255,7 @@ function abrirAlocacao(dcId){
       <div style="font-size:13px;font-weight:600;margin-bottom:5px">${dc.material} — ${dc.fornecedor}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
         <div><span style="color:var(--text2)">Chegada: </span>${r.horaReal}</div>
-        <div><span style="color:var(--text2)">Real: </span><strong>'+fmtKg(r.tonReal)+'</strong></div>
+        <div><span style="color:var(--text2)">Real: </span><strong>${fmtKg(r.tonReal)}</strong></div>
         <div><span style="color:var(--text2)">NF: </span>${r.nfReal||'—'}</div>
         <div><span style="color:var(--text2)">Lote: </span>${r.loteReal||'—'}</div>
       </div>
@@ -303,7 +305,7 @@ function confirmarAlocacao(){
   dc.status='armazenado';
   dc.alocacao={baiaId,baiaName:baia.nome,seguiuSugestao:dc.baia===baiaId,baiaSugName:baiaSug?baiaSug.nome:null,obs:document.getElementById('alocar-obs').value,alocadoAt:new Date().toISOString()};
   const opNomeStr=opNome(r.operadorId||S.turnoAtivo.operadorId);
-  S.movimentacoes.push({id:uid(),tipo:'entrada',baiaId:baia.id,baiaNome:baia.nome,desc:`Entrada: ${dc.material} — ${dc.fornecedor} ('+fmtKg(r.tonReal)+', Lote ${r.loteReal||'—'})`,data:hoje(),operador:opNomeStr,nf:r.nfReal||dc.nf||'—'});
+  S.movimentacoes.push({id:uid(),tipo:'entrada',baiaId:baia.id,baiaNome:baia.nome,desc:`Entrada: ${dc.material} — ${dc.fornecedor} (${fmtKg(r.tonReal)}, Lote ${r.loteReal||'—'})`,data:hoje(),operador:opNomeStr,nf:r.nfReal||dc.nf||'—'});
   S.recebimentos.push({id:uid(),dcId:dc.id,fornecedor:dc.fornecedor,material:dc.material,tonPrev:dc.toneladas,tonReal:r.tonReal,lote:r.loteReal||dc.lote,nf:r.nfReal||dc.nf,horaChegada:r.horaReal,placa:r.placa,motorista:r.motorista,baiaNome:baia.nome,baiaSugNome:baiaSug?baiaSug.nome:null,seguiuSugestao:dc.baia===baiaId,divergencia:r.divergencia,data:dc.data,operador:opNomeStr,turno:turnoLabel(S.turnoAtivo.turno),finalizadoAt:new Date().toISOString()});
   saveState();closeModal('modal-alocar');render();
 }
@@ -504,7 +506,7 @@ function renderDashboard(){
   alertEl.innerHTML=alerts;
 
   document.getElementById('metrics-row').innerHTML=`
-    <div class="metric-card"><div class="metric-label">Total em estoque</div><div class="metric-value">${fmtKg(totalTonMat)}</div><div class="metric-sub">${fmtKg(totalTonMat)}</div></div>
+    <div class="metric-card"><div class="metric-label">Total em estoque</div><div class="metric-value">${fmtKg(totalTonMat)}</div><div class="metric-sub">em estoque</div></div>
     <div class="metric-card"><div class="metric-label">Disponivel p/ recebimento</div><div class="metric-value" style="color:${capDisp>0?'#1D9E75':'#E24B4A'}">${fmtKg(capDisp)}</div><div class="metric-sub">de ${fmtKg(cap)} capacidade diaria</div></div>
     <div class="metric-card"><div class="metric-label">Baias livres / ocupadas</div><div class="metric-value"><span style="color:#1D9E75">${livre}</span><span style="font-size:14px;color:var(--text2)"> / <span style="color:#378ADD">${ocup}</span></span></div><div class="metric-sub">${baias.length} baias total</div></div>
     <div class="metric-card"><div class="metric-label">Atrasos / Aguardando</div><div class="metric-value" style="color:${(atrasados.length+pendRec)>0?'#854F0B':'inherit'}">${atrasados.length} / ${pendRec}</div><div class="metric-sub">alertas / recebimento</div></div>`;
@@ -513,7 +515,7 @@ function renderDashboard(){
 
   const notifs=[];
   atrasados.forEach(d=>notifs.push({tipo:'danger',msg:'Atraso: '+d.fornecedor+' — '+d.material+' (previsto '+d.hora+')'}));
-  if(capHj/cap>=0.8&&capHj<=cap)notifs.push({tipo:'warning',msg:'Capacidade hoje: '+pct+'% utilizada ('+capHj+'t/'+cap+'t)'});
+  if(capHj/cap>=0.8&&capHj<=cap)notifs.push({tipo:'warning',msg:'Capacidade hoje: '+pct+'% utilizada ('+fmtKg(capHj)+'/'+fmtKg(cap)+')'});
   S.baias.filter(b=>b.estoque&&b.cap>0&&b.estoque.qtdAtual/b.cap>0.9).forEach(b=>notifs.push({tipo:'warning',msg:'Baia '+b.nome+' quase cheia ('+Math.round(b.estoque.qtdAtual/b.cap*100)+'%)'}));
   S.descargas.filter(d=>d.data===hj&&d.status==='pendente'&&!atrasados.find(a=>a.id===d.id)).forEach(d=>notifs.push({tipo:'info',msg:'Descarga prevista: '+d.material+' — '+d.fornecedor+' as '+d.hora}));
   S.transferencias.filter(t=>t.dataTransf&&t.dataTransf===hj).forEach(t=>notifs.push({tipo:'info',msg:'Transferencia hoje: '+(t.material||t.fornecedor)+' — NF '+t.nf}));
@@ -537,9 +539,9 @@ function renderDashboard(){
   if(!matKeys.length){matEl.innerHTML='<div style="font-size:12px;color:var(--text3)">Nenhum material em estoque. Cadastre na aba Materiais.</div>';}
   else{
     const totalMat=matKeys.reduce((s,k)=>s+matCad[k].qtdEstoque,0);
-    matEl.innerHTML='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)"><span>Total: <strong>'+totalMat.toFixed(1)+'t</strong></span><span>'+matKeys.length+' materiais</span></div>'+matKeys.map(k=>{
+    matEl.innerHTML='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)"><span>Total: <strong>'+fmtKg(totalMat)+'</strong></span><span>'+matKeys.length+' materiais</span></div>'+matKeys.map(k=>{
       const m=matCad[k];const pctM=Math.min(100,Math.round(m.qtdEstoque/maxQtd*100));
-      return '<div class="mat-indicator"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+m.nome+'</div><div style="font-size:11px;color:var(--text2)">'+(m.codigo||'—')+'</div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div class="mat-bar-wrap"><div class="mat-bar" style="width:'+pctM+'%;background:'+(pctM>70?'#1D9E75':pctM>30?'#EF9F27':'#378ADD')+'"></div></div><div style="font-size:13px;font-weight:600;min-width:46px;text-align:right">'+m.qtdEstoque.toFixed(1)+'t</div></div></div>';
+      return '<div class="mat-indicator"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+m.nome+'</div><div style="font-size:11px;color:var(--text2)">'+(m.codigo||'—')+'</div></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div class="mat-bar-wrap"><div class="mat-bar" style="width:'+pctM+'%;background:'+(pctM>70?'#1D9E75':pctM>30?'#EF9F27':'#378ADD')+'"></div></div><div style="font-size:13px;font-weight:600;min-width:46px;text-align:right">'+fmtKg(m.qtdEstoque)+'</div></div></div>';
     }).join('');
   }
 
@@ -557,7 +559,7 @@ function renderDashboard(){
   // Estoque por baia
   const matB={};S.baias.filter(b=>b.estoque).forEach(b=>{matB[b.id]={qtd:b.estoque.qtdAtual,lote:b.estoque.lote,forn:b.estoque.fornecedorNome,baia:b.nome,nf:b.estoque.nf};});
   const keysB=Object.keys(matB);
-  document.getElementById('estoque-resumo').innerHTML=keysB.length?'<div style="overflow-x:auto"><table><thead><tr><th>Baia</th><th>Fornecedor / Lote</th><th>NF</th><th>Qtd atual (kg)</th><th>Qtd atual (kg)</th></tr></thead><tbody>'+keysB.map(k=>'<tr><td style="font-weight:600">'+matB[k].baia+'</td><td>'+matB[k].forn+'<br><span style="font-size:11px;color:var(--text2)">'+(matB[k].lote||'—')+'</span></td><td><span class="tag">'+(matB[k].nf||'—')+'</span></td><td style="font-weight:600">'+matB[k].qtd.toFixed(1)+'t</td><td style="color:var(--text2)">'+(matB[k].qtd*1000).toLocaleString('pt-BR')+' kg</td></tr>').join('')+'</tbody></table></div>':'<div class="empty-state">Nenhum estoque alocado nas baias</div>';
+  document.getElementById('estoque-resumo').innerHTML=keysB.length?'<div style="overflow-x:auto"><table><thead><tr><th>Baia</th><th>Fornecedor / Lote</th><th>NF</th><th>Qtd atual (kg)</th></tr></thead><tbody>'+keysB.map(k=>'<tr><td style="font-weight:600">'+matB[k].baia+'</td><td>'+matB[k].forn+'<br><span style="font-size:11px;color:var(--text2)">'+(matB[k].lote||'—')+'</span></td><td><span class="tag">'+(matB[k].nf||'—')+'</span></td><td style="font-weight:600">'+fmtKg(matB[k].qtd)+'</td></tr>').join('')+'</tbody></table></div>':'<div class="empty-state">Nenhum estoque alocado nas baias</div>';
 }
 
 function renderAgenda(){
@@ -584,7 +586,7 @@ function renderAgenda(){
             <div style="min-width:40px;font-size:12px;font-weight:600;color:${isAtr?'#A32D2D':'var(--blue)'};padding-top:1px">${d.hora}</div>
             <div style="flex:1">
               <div style="font-size:13px;font-weight:600">${d.material} — ${d.fornecedor}</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:1px">'+fmtKg(d.toneladas)+'${d.lote?' · '+d.lote:''}${d.nf?' · '+d.nf:''}${baia?' · Baia sugerida: '+baia.nome:''}${d.operador?' · '+opNome(d.operador):''}${isAtr?' · ⚠ ATRASADO':''}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:1px">${fmtKg(d.toneladas)}${d.lote?' · '+d.lote:''}${d.nf?' · '+d.nf:''}${baia?' · Baia sugerida: '+baia.nome:''}${d.operador?' · '+opNome(d.operador):''}${isAtr?' · ⚠ ATRASADO':''}</div>
             </div>
             <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
               <span class="badge ${sMap[d.status]||'badge-gray'}">${sLabel[d.status]||d.status}</span>
@@ -615,7 +617,7 @@ function renderRecebimento(){
           <div style="font-size:13px;font-weight:600">${d.material} — ${d.fornecedor}</div>
           <div style="font-size:11px;color:var(--text2);margin-top:2px">${fmtDate(d.data)} ${d.hora} · ${fmtKg(d.toneladas)}${baia?' · Sugerida: '+baia.nome:''}${d.nf?' · NF: '+d.nf:''}</div>
           ${isAtr?`<span class="badge badge-red" style="margin-top:4px">⚠ Atrasado — previsto ${d.hora}</span>`:''}
-          ${isChegou?`<div style="margin-top:5px"><span class="badge badge-blue">Chegou ${d.recebimento.horaReal} · '+fmtKg(d.recebimento.tonReal)+'${d.recebimento.placa?' · '+d.recebimento.placa:''}</span>${d.recebimento.divergencia?' <span class="badge badge-red">Divergência</span>':''}</div>`:''}
+          ${isChegou?`<div style="margin-top:5px"><span class="badge badge-blue">Chegou ${d.recebimento.horaReal} · ${fmtKg(d.recebimento.tonReal)}${d.recebimento.placa?' · '+d.recebimento.placa:''}</span>${d.recebimento.divergencia?' <span class="badge badge-red">Divergência</span>':''}</div>`:''}
         </div>
         <div style="display:flex;gap:5px;flex-shrink:0">
           ${!isChegou?`<button class="btn btn-warning btn-sm" onclick="abrirChegada('${d.id}')">Confirmar chegada</button>`:''}
@@ -682,7 +684,7 @@ function renderDepositos(){
       else cls=baiaTemEstoque(b)?(b.cap>0&&_tot/b.cap>.9?'alerta':'ocupada'):'livre';
       const _e0=baiaPrimEstoque(b);return`<div class="baia-card ${cls}" onclick="abrirBaiaDet('${b.id}')">
         <div class="baia-name">${b.nome}${b.estoques&&b.estoques.length>1?' ('+b.estoques.length+'p)':''}</div>
-        <div class="baia-info">${b.status==='inutilizada'?'⚠ Inutilizada':b.status==='manutencao'?'🔧 Manutenção':_e0?_e0.fornecedorNome:'Livre'}${_e0&&b.status!=='inutilizada'&&b.status!=='manutencao'?`<br>${_tot.toFixed(1)}/fmtKg(b.cap)}`:''}</div>
+        <div class="baia-info">${b.status==='inutilizada'?'⚠ Inutilizada':b.status==='manutencao'?'🔧 Manutenção':_e0?_e0.fornecedorNome:'Livre'}${_e0&&b.status!=='inutilizada'&&b.status!=='manutencao'?`<br>${fmtKg(_tot)}/${fmtKg(b.cap)}`:''}</div>
         ${b.material&&!baiaTemEstoque(b)&&!b.status?`<div class="baia-info" style="margin-top:2px">Sug: ${b.material}</div>`:''}
       </div>`;}).join('')}</div>`:'<div class="empty-state" style="padding:12px">Nenhuma baia neste depósito — clique em "+ Baia".</div>'}
     </div>`;
@@ -736,7 +738,7 @@ function renderEstoque(){
   com.forEach(function(b){b.estoques.forEach(function(e){var k=e.fornecedorNome||'Outro';if(!matCount[k])matCount[k]=0;matCount[k]+=e.qtdAtual;});});
   var resumoEl=document.getElementById('est-resumo-cards');
   if(resumoEl)resumoEl.innerHTML=
-    '<div class="metric-card"><div class="metric-label">Total em estoque</div><div class="metric-value" style="font-size:20px">'+totalTon.toFixed(1)+'t</div></div>'
+    '<div class="metric-card"><div class="metric-label">Total em estoque</div><div class="metric-value" style="font-size:20px">'+fmtKg(totalTon)+'</div></div>'
     +'<div class="metric-card"><div class="metric-label">Baias ocupadas</div><div class="metric-value" style="font-size:20px">'+totalBaias+'</div></div>'
     +'<div class="metric-card"><div class="metric-label">Lotes ativos</div><div class="metric-value" style="font-size:20px">'+totalLotes+'</div></div>'
     +'<div class="metric-card"><div class="metric-label">Materiais distintos</div><div class="metric-value" style="font-size:20px">'+Object.keys(matCount).length+'</div></div>';
@@ -768,8 +770,8 @@ function renderEstoque(){
         +'<td><span class="tag">'+(e.lote||'—')+'</span></td>'
         +'<td><span class="tag">'+(e.nf||'—')+'</span></td>'
         +'<td>'+e.qtdTotal+'t</td>'
-        +'<td style="font-weight:600">'+e.qtdAtual.toFixed(3)+'t</td>'
-        +'<td style="color:var(--text2)">'+e.qtdUsada.toFixed(3)+'t</td>'
+        +'<td style="font-weight:600">'+fmtKg(e.qtdAtual)+'</td>'
+        +'<td style="color:var(--text2)">'+fmtKg(e.qtdUsada)+'</td>'
         +'<td><div style="display:flex;align-items:center;gap:6px">'
           +'<input type="number" min="0" step="1" value="'+(e.bigBags||0)+'" data-bid="'+b.id+'" data-eid="'+e.id+'" onchange="salvarBigBag(this)" style="width:60px;padding:3px 6px;font-size:12px" title="Big Bags">'
           +'<span style="font-size:11px;color:var(--text2)">BB</span>'
@@ -824,12 +826,12 @@ function renderEstoquePorProduto(com, busca, filtDep, filtMat, el){
       +'<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3);cursor:pointer" onclick="toggleProdutoGroup(this)">'
         +'<div style="flex:1">'
           +'<div style="font-size:14px;font-weight:600">'+mat+'</div>'
-          +'<div style="font-size:12px;color:var(--text2)">'+g.lotes.length+' lote(s) &nbsp;·&nbsp; '+g.totalBB+' big bags &nbsp;·&nbsp; Total atual: <strong>'+g.totalAtual.toFixed(3)+'t</strong></div>'
+          +'<div style="font-size:12px;color:var(--text2)">'+g.lotes.length+' lote(s) &nbsp;·&nbsp; '+g.totalBB+' big bags &nbsp;·&nbsp; Total atual: <strong>'+fmtKg(g.totalAtual)+'</strong></div>'
         +'</div>'
         +'<div style="display:flex;align-items:center;gap:12px;flex-shrink:0">'
           +'<div style="text-align:right">'
-            +'<div style="font-size:18px;font-weight:600;color:'+cor+'">'+g.totalAtual.toFixed(3)+'t</div>'
-            +'<div style="font-size:11px;color:var(--text2)">de '+g.totalTotal.toFixed(3)+'t total</div>'
+            +'<div style="font-size:18px;font-weight:600;color:'+cor+'">'+fmtKg(g.totalAtual)+'</div>'
+            +'<div style="font-size:11px;color:var(--text2)">de '+fmtKg(g.totalTotal)+' total</div>'
           +'</div>'
           +'<span style="font-size:14px;color:var(--text3)">▾</span>'
         +'</div>'
@@ -855,7 +857,7 @@ function renderEstoquePorProduto(com, busca, filtDep, filtMat, el){
               +'<td style="padding:8px 12px;color:var(--text2)">'+l.dep+'</td>'
               +'<td style="padding:8px 12px"><span class="tag">'+l.lote+'</span></td>'
               +'<td style="padding:8px 12px"><span class="tag">'+l.nf+'</span></td>'
-              +'<td style="padding:8px 12px;font-weight:600">'+l.qtdAtual.toFixed(3)+'t</td>'
+              +'<td style="padding:8px 12px;font-weight:600">'+fmtKg(l.qtdAtual)+'</td>'
               +'<td style="padding:8px 12px">'+l.bigBags+'</td>'
               +'<td style="padding:8px 12px">'
                 +'<button class="btn btn-sm" data-bid="'+l.bid+'" onclick="abrirBaiaDet(this.dataset.bid)" style="font-size:11px">Ver baia</button>'
@@ -970,14 +972,7 @@ function renderConfig(){
   el.innerHTML=S.operadores.map(o=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px">${o.nome}</div><div style="font-size:11px;color:var(--text2)">${o.cargo||'—'}</div></div><button class="btn btn-sm btn-danger" onclick="removerOperador('${o.id}')">✕</button></div>`).join('');
 }
 
-function converter(){
-  const v=parseFloat(document.getElementById('conv-valor').value);
-  const u=document.getElementById('conv-unid').value;
-  const el=document.getElementById('conv-resultado');
-  if(isNaN(v)||v<=0){el.textContent='—';return;}
-  if(u==='kg'){el.textContent=(v*1000).toLocaleString('pt-BR',{maximumFractionDigits:2})+' kg';}
-  else{el.textContent=(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:4})+'kg';}
-}
+function converter(){} // conversor removido
 
 function csvEscape(v){if(v===null||v===undefined)return'';const s=String(v);return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s;}
 function downloadCSV(filename,rows){
@@ -1184,8 +1179,8 @@ function renderCapBar(){
   if(capEl){
     capEl.innerHTML=''
       +'<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:5px">'
-        +'<span style="font-size:18px;font-weight:600">'+capDia.toFixed(1)+'t</span>'
-        +'<span style="font-size:12px;color:var(--text2)">de '+cap+'t '+dayLabel+'</span>'
+        +'<span style="font-size:18px;font-weight:600">'+fmtKg(capDia)+'</span>'
+        +'<span style="font-size:12px;color:var(--text2)">de '+fmtKg(cap)+' '+dayLabel+'</span>'
         +'<span class="badge '+(pct>=100?'badge-red':pct>=75?'badge-amber':'badge-green')+'" style="margin-left:auto">'+pct+'%</span>'
       +'</div>'
       +'<div class="progress-bar" style="height:7px"><div class="progress-fill" style="width:'+pct+'%;background:'+cor+'"></div></div>'
@@ -1246,7 +1241,7 @@ function salvarTransferencia(){
   if(!f||!nf){alert('Informe fornecedor e número da NF.');return;}
   const unid='kg';
   const qtdRaw=parseFloat(document.getElementById('tr-qtd').value)||0;
-  const qtdTon=qtdRaw; // unit always kg
+  const qtdTon=qtdRaw; // input in tons, stored as tons
   const t={
     id:uid(),fornecedor:f,nf,
     mp:document.getElementById('tr-mp').value,
@@ -1281,7 +1276,7 @@ function renderMateriais(){
   if(!S.materiais.length){el.innerHTML='<div class="empty-state">Nenhum material cadastrado. Clique em "+ Material" para adicionar.</div>';return;}
   el.innerHTML='<table><thead><tr><th>Código</th><th>Nome</th><th>Categoria</th><th>Unidade</th><th>Em estoque (ton)</th><th>Observações</th><th></th></tr></thead><tbody>'+S.materiais.map(m=>{
     const qtd=S.baias.filter(b=>b.estoque&&b.estoque.fornecedorNome===m.nome).reduce((s,b)=>s+b.estoque.qtdAtual,0);
-    return'<tr><td><span class="tag">'+(m.codigo||'—')+'</span></td><td style="font-weight:600">'+m.nome+'</td><td style="color:var(--text2)">'+(m.categoria||'—')+'</td><td>'+m.unidade+'</td><td style="font-weight:600">'+qtd.toFixed(1)+'t</td><td style="font-size:12px;color:var(--text2)">'+(m.obs||'—')+'</td><td><button class="btn btn-sm btn-danger" onclick="excluirMaterial(\''+m.id+'\')">&#x2715;</button></td></tr>';
+    return'<tr><td><span class="tag">'+(m.codigo||'—')+'</span></td><td style="font-weight:600">'+m.nome+'</td><td style="color:var(--text2)">'+(m.categoria||'—')+'</td><td>'+m.unidade+'</td><td style="font-weight:600">'+fmtKg(qtd)+'</td><td style="font-size:12px;color:var(--text2)">'+(m.obs||'—')+'</td><td><button class="btn btn-sm btn-danger" onclick="excluirMaterial(\''+m.id+'\')">&#x2715;</button></td></tr>';
   }).join('')+'</tbody></table>';
 }
 
@@ -1341,7 +1336,7 @@ function renderTransferencias(){
             +'<span>NF: <strong>'+t.nf+'</strong></span>'
             +(t.mp?'<span>MP: '+t.mp+'</span>':'')
             +(t.mapa?'<span>Mapa: '+t.mapa+'</span>':'')
-            +(t.qtd?'<span>Qtd: '+t.qtd.toFixed(3)+'t</span>':'')
+            +(t.qtd?'<span>Qtd: '+fmtKg(t.qtd)+'</span>':'')
           +'</div>'
           +'<div style="font-size:11px;color:var(--text3)">'
             +'Chegada na matriz: '+(fmtDate(t.dataMatriz)||'nao informada')
@@ -1397,7 +1392,7 @@ function salvarEdicaoTransf(){
   t.mp=document.getElementById('edit-tr-mp').value.trim();
   t.mapa=document.getElementById('edit-tr-mapa').value.trim();
   t.qtdOriginal=qtdRaw;t.unidadeOriginal=unid;
-  t.qtd=qtdRaw; // unit always kg
+  t.qtd=qtdRaw; // input in tons, stored as tons
   t.dataMatriz=document.getElementById('edit-tr-data-matriz').value;
   t.dataTransf=document.getElementById('edit-tr-data-transf').value;
   t.hora=document.getElementById('edit-tr-hora').value||'08:00';
@@ -1416,7 +1411,7 @@ function abrirConfirmarRecebTransf(id){
     +'<span>NF: <strong>'+t.nf+'</strong></span>'
     +(t.mp?'<span>MP: '+t.mp+'</span>':'')
     +(t.mapa?'<span>Mapa: <strong>'+t.mapa+'</strong></span>':'')
-    +(t.qtd?'<span>Qtd prevista: <strong>'+t.qtd.toFixed(3)+'t</strong></span>':'')
+    +(t.qtd?'<span>Qtd prevista: <strong>'+fmtKg(t.qtd)+'</strong></span>':'')
     +'<span>Transf.: <strong>'+fmtDate(t.dataTransf)+'</strong></span>'
     +'</div>';
   document.getElementById('conf-hora-real').value=new Date().toTimeString().slice(0,5);
@@ -1557,7 +1552,7 @@ function lancarEstoqueManual(){
     if(!confirm('Esta baia ja possui '+baia.estoques.length+' produto(s) armazenado(s).\nDeseja adicionar mais um produto?'))return;
   }
   var unid='kg';
-  var qtdTon=qtdRaw; // unit always kg
+  var qtdTon=qtdRaw; // input in tons, stored as tons
   var mat=document.getElementById('em-material').value.trim();
   var lote=document.getElementById('em-lote').value.trim();
   var nf=document.getElementById('em-nf').value.trim();
@@ -1575,7 +1570,7 @@ function lancarEstoqueManual(){
     data:dtEntrada,operador:opNome(S.turnoAtivo.operadorId)||'Manual',nf:nf||'—'
   });
   saveState();closeModal('modal-entrada-manual');render();
-  alert('Estoque lancado com sucesso!\n'+qtdTon.toFixed(3)+'t alocados na baia '+baia.nome+'.');
+  alert('Estoque lancado com sucesso!\n'+fmtKg(qtdTon)+' alocados na baia '+baia.nome+'.');
 }
 
 function autoAvancarDescargas(){
@@ -1643,7 +1638,7 @@ function montarCorpoEmail(){
   }
   var cap=S.capDiaria||160;
   var capHj=getCapDia(hj);
-  linhas.push('Capacidade hoje: '+capHj+'t / '+cap+'t ('+Math.round(capHj/cap*100)+'%)');
+  linhas.push('Capacidade hoje: '+fmtKg(capHj)+' / '+fmtKg(cap)+' ('+Math.round(capHj/cap*100)+'%)');
   if(capHj>cap)linhas.push('ATENCAO: Capacidade diaria EXCEDIDA!');
   linhas.push('');
   linhas.push('Gerado automaticamente pelo VittiaAfford em '+new Date().toLocaleString('pt-BR'));
@@ -1913,8 +1908,8 @@ function renderKPIs(){
   var nOcup=S.baias.filter(function(b){return b.estoques&&b.estoques.length>0;}).length;
   var ocAbertas=S.ocorrencias.filter(function(o){return o.status!=='resolvida';}).length;
   document.getElementById('kpi-cards').innerHTML=
-    '<div class="metric-card"><div class="metric-label">Entradas no período</div><div class="metric-value">'+totalEntrada.toFixed(1)+'t</div><div class="metric-sub">'+recsFiltro.length+' recebimentos</div></div>'
-    +'<div class="metric-card"><div class="metric-label">Saídas no período</div><div class="metric-value">'+totalSaida.toFixed(1)+'t</div><div class="metric-sub">'+baixasFiltro.length+' baixas</div></div>'
+    '<div class="metric-card"><div class="metric-label">Entradas no período</div><div class="metric-value">'+fmtKg(totalEntrada)+'</div><div class="metric-sub">'+recsFiltro.length+' recebimentos</div></div>'
+    +'<div class="metric-card"><div class="metric-label">Saídas no período</div><div class="metric-value">'+fmtKg(totalSaida)+'</div><div class="metric-sub">'+baixasFiltro.length+' baixas</div></div>'
     +'<div class="metric-card"><div class="metric-label">Taxa de divergência</div><div class="metric-value" style="color:'+(txDiv>10?'#A32D2D':txDiv>5?'#854F0B':'#0F6E56')+'">'+txDiv+'%</div><div class="metric-sub">'+totalDiverg+' de '+recsFiltro.length+' receb.</div></div>'
     +'<div class="metric-card"><div class="metric-label">Ocorrências abertas</div><div class="metric-value" style="color:'+(ocAbertas>0?'#A32D2D':'#0F6E56')+'">'+ocAbertas+'</div><div class="metric-sub">Baias ocup.: '+nOcup+'/'+nBaias+'</div></div>';
   // Chart 1: Entradas por semana
@@ -2001,7 +1996,7 @@ function renderKPIs(){
       return '<tr>'
         +'<td style="font-weight:600">'+t+'</td>'
         +'<td>'+ts.rec+'</td>'
-        +'<td>'+ts.ton.toFixed(1)+'t</td>'
+        +'<td>'+fmtKg(ts.ton)+'</td>'
         +'<td style="color:'+(ts.div>0?'#A32D2D':'#0F6E56')+'">'+ts.div+'</td>'
         +'<td><span class="badge '+(txD>10?'badge-red':txD>5?'badge-amber':'badge-green')+'">'+txD+'%</span></td>'
         +'</tr>';
@@ -2018,13 +2013,13 @@ function renderKPIs(){
     else{ctx5.parentElement.innerHTML='<div class="empty-state" style="padding:30px 10px">Sem dados no periodo</div>';}
   }
   // Ranking fornecedores
-  var rkEl=document.getElementById('ranking-fornecedores');
+  var rkEl=document.getElementById('ranking-fornecedores');if(!rkEl)return;
   if(rkEl){
     var fMap={};
     recs.forEach(function(r){if(!fMap[r.fornecedor])fMap[r.fornecedor]={ton:0,n:0,dv:0};fMap[r.fornecedor].ton+=r.tonReal;fMap[r.fornecedor].n++;if(r.divergencia)fMap[r.fornecedor].dv++;});
     var fKeys=Object.keys(fMap).sort(function(a,b){return fMap[b].ton-fMap[a].ton;}).slice(0,8);
     if(!fKeys.length){rkEl.innerHTML='<div class="empty-state">Sem dados no periodo</div>';}
-    else{var mx=fMap[fKeys[0]].ton;rkEl.innerHTML=fKeys.map(function(k,i){var f=fMap[k];var pct=Math.round(f.ton/mx*100);var txD=Math.round(f.dv/f.n*100);return '<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span><b>'+(i+1)+'.</b> '+(k.length>18?k.slice(0,17)+'...':k)+'</span><span style="color:var(--text2)">'+f.ton.toFixed(1)+'t '+(txD>0?'<span style="color:#A32D2D">'+txD+'%div</span>':'<span style="color:#0F6E56">ok</span>')+'</span></div><div style="height:5px;border-radius:3px;background:var(--border)"><div style="width:'+pct+'%;height:100%;border-radius:3px;background:'+(txD>15?'#E24B4A':txD>5?'#EF9F27':'#1D9E75')+'"></div></div></div>';}).join('');}
+    else{var mx=fMap[fKeys[0]].ton;rkEl.innerHTML=fKeys.map(function(k,i){var f=fMap[k];var pct=Math.round(f.ton/mx*100);var txD=Math.round(f.dv/f.n*100);return '<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span><b>'+(i+1)+'.</b> '+(k.length>18?k.slice(0,17)+'...':k)+'</span><span style="color:var(--text2)">'+fmtKg(f.ton)+' '+(txD>0?'<span style="color:#A32D2D">'+txD+'%div</span>':'<span style="color:#0F6E56">ok</span>')+'</span></div><div style="height:5px;border-radius:3px;background:var(--border)"><div style="width:'+pct+'%;height:100%;border-radius:3px;background:'+(txD>15?'#E24B4A':txD>5?'#EF9F27':'#1D9E75')+'"></div></div></div>';}).join('');}
   }
 
 }
@@ -2063,8 +2058,8 @@ function renderDashKPIMini(){
   var ocAb=S.ocorrencias.filter(function(o){return o.status!=='resolvida';}).length;
   var mini=document.getElementById('dash-kpi-mini');
   if(mini)mini.innerHTML=
-    '<div class="metric-card"><div class="metric-label">Entradas (30d)</div><div class="metric-value" style="font-size:18px">'+recs.reduce(function(s,r){return s+r.tonReal;},0).toFixed(1)+'t</div></div>'
-    +'<div class="metric-card"><div class="metric-label">Saídas (30d)</div><div class="metric-value" style="font-size:18px">'+baixas.reduce(function(s,b){return s+b.qtd;},0).toFixed(1)+'t</div></div>'
+    '<div class="metric-card"><div class="metric-label">Entradas (30d)</div><div class="metric-value" style="font-size:18px">'+fmtKg(recs.reduce(function(s,r){return s+r.tonReal;},0))+'</div></div>'
+    +'<div class="metric-card"><div class="metric-label">Saídas (30d)</div><div class="metric-value" style="font-size:18px">'+fmtKg(baixas.reduce(function(s,b){return s+b.qtd;},0))+'</div></div>'
     +'<div class="metric-card"><div class="metric-label">Taxa divergência</div><div class="metric-value" style="font-size:18px;color:'+(txDiv>10?'#A32D2D':txDiv>5?'#854F0B':'#0F6E56')+'">'+txDiv+'%</div></div>'
     +'<div class="metric-card"><div class="metric-label">Ocorrências abertas</div><div class="metric-value" style="font-size:18px;color:'+(ocAb>0?'#A32D2D':'#0F6E56')+'">'+ocAb+'</div></div>';
   // Mini chart entradas/saidas por semana
@@ -2149,7 +2144,7 @@ function calcAcertoPreviewEstoque(diffTon){
   if(!baia.estoques){baia.estoques=baia.estoque?[baia.estoque]:[];delete baia.estoque;}
   var tot=baia.estoques.reduce(function(s,e){return s+e.qtdAtual;},0);
   var novoTot=Math.max(0,tot+diffTon);
-  prev.innerHTML='Estoque atual da baia: <strong>'+tot.toFixed(3)+'t</strong> &nbsp;→&nbsp; Apos ajuste: <strong style="color:'+(novoTot>tot?'#0F6E56':'#A32D2D')+'">'+novoTot.toFixed(3)+'t</strong> ('+(diffTon>0?'+':'')+diffTon.toFixed(3)+'t)';
+  prev.innerHTML='Estoque atual da baia: <strong>'+fmtKg(tot)+'</strong> &nbsp;→&nbsp; Apos ajuste: <strong style="color:'+(novoTot>tot?'#0F6E56':'#A32D2D')+'">'+fmtKg(novoTot)+'</strong> ('+(diffTon>0?'+':'')+fmtKg(diffTon)+')';
 }
 
 function onAcertoBaiaChange(){
@@ -2254,7 +2249,7 @@ function salvarAcertoPeso(){
           estAj.qtdAtual=Math.max(0,estAj.qtdAtual+diffTon);
           if(diffTon<0)estAj.qtdUsada=Math.max(0,estAj.qtdUsada-diffTon);
           S.movimentacoes.push({id:uid(),tipo:'ajuste',baiaId:baiaAj.id,baiaNome:baiaAj.nome,
-            desc:'Acerto de peso (PCP): mapa '+mapa+', lote '+lote+' — '+(diffTon>0?'+':'')+diffTon.toFixed(3)+'t ('+acerto.produto+')',
+            desc:'Acerto de peso (PCP): mapa '+mapa+', lote '+lote+' — '+(diffTon>0?'+':'')+fmtKg(diffTon)+' ('+acerto.produto+')',
             data:acerto.data,operador:acerto.operador||'—',nf:'—'});
         }
       } else {
@@ -2265,7 +2260,7 @@ function salvarAcertoPeso(){
           e.qtdAtual=Math.max(0,e.qtdAtual+diffTon*proporcao);
         });
         S.movimentacoes.push({id:uid(),tipo:'ajuste',baiaId:baiaAj.id,baiaNome:baiaAj.nome,
-          desc:'Acerto de peso (PCP): mapa '+mapa+', lote '+lote+' — '+(diffTon>0?'+':'')+diffTon.toFixed(3)+'t ('+acerto.produto+')',
+          desc:'Acerto de peso (PCP): mapa '+mapa+', lote '+lote+' — '+(diffTon>0?'+':'')+fmtKg(diffTon)+' ('+acerto.produto+')',
           data:acerto.data,operador:acerto.operador||'—',nf:'—'});
       }
     }
@@ -2395,11 +2390,11 @@ function preencherConfProduto(){
     });
   });
   var tot=entries.reduce(function(s,e){return s+e.qtd;},0);
-  if(sist)sist.value=tot.toFixed(3)+' ton';
+  if(sist)sist.value=fmtKg(tot);
   if(det){
     if(entries.length>0){
       det.innerHTML='<strong>Lotes em estoque:</strong> '
-        +entries.map(function(e){return e.baia+' / '+e.lote+' ('+e.qtd.toFixed(3)+'t)';}).join(' &nbsp;|&nbsp; ');
+        +entries.map(function(e){return e.baia+' / '+e.lote+' ('+fmtKg(e.qtd)+')';}).join(' &nbsp;|&nbsp; ');
       det.style.display='';
     } else {
       det.innerHTML='Nenhum estoque encontrado para este produto.';
@@ -2432,7 +2427,7 @@ function calcConferencia(){
     var absDiff=Math.abs(diff);
     var pct=tot>0?Math.round(absDiff/tot*1000)/10:0;
     if(absDiff>0.001)
-      alertEl.innerHTML='<div class="alert-bar '+(pct>5?'alert-danger':'alert-warning')+'" style="margin-bottom:8px">Divergencia de '+(diff>0?'+':'')+fmtKg(diff)+' ('+pct+'%). Sistema: '+tot.toFixed(3)+'t / Conferido: '+fisica.toFixed(3)+'t</div>';
+      alertEl.innerHTML='<div class="alert-bar '+(pct>5?'alert-danger':'alert-warning')+'" style="margin-bottom:8px">Divergencia de '+(diff>0?'+':'')+fmtKg(diff)+' ('+pct+'%). Sistema: '+fmtKg(tot)+' / Conferido: '+fmtKg(fisica)+'</div>';
     else
       alertEl.innerHTML='<div class="alert-bar alert-success" style="margin-bottom:8px">Estoque conforme. Sistema e conferencia coincidem.</div>';
   }
@@ -2522,7 +2517,7 @@ function abrirInvestigacao(id){
   document.getElementById('modal-investigacao')._confId=id;
   document.getElementById('inv-resumo').innerHTML=
     '<div style="font-weight:600;margin-bottom:5px">'+c.baiaNome+' — '+fmtDate(c.data)+'</div>'
-    +'<div style="font-size:12px;color:var(--text2)">Sistema: <strong>'+c.qtdSistema.toFixed(3)+'t</strong> &nbsp;·&nbsp; Conferido: <strong>'+c.qtdFisica.toFixed(3)+'t</strong> &nbsp;·&nbsp; Diferença: <strong style="color:'+(c.diferenca<0?'#A32D2D':'#0F6E56')+'">'+(c.diferenca>0?'+':'')+c.diferenca.toFixed(3)+'t</strong></div>';
+    +'<div style="font-size:12px;color:var(--text2)">Sistema: <strong>'+fmtKg(c.qtdSistema)+'</strong> &nbsp;·&nbsp; Conferido: <strong>'+fmtKg(c.qtdFisica)+'</strong> &nbsp;·&nbsp; Diferença: <strong style="color:'+(c.diferenca<0?'#A32D2D':'#0F6E56')+'">'+(c.diferenca>0?'+':'')+fmtKg(c.diferenca)+'</strong></div>';
   document.getElementById('inv-status').value=c.statusInv||'investigando';
   document.getElementById('inv-motivo').value=c.motivoInv||'';
   document.getElementById('inv-obs').value=c.obsInv||'';
@@ -2556,7 +2551,7 @@ function salvarInvestigacao(){
         var e=baia.estoques[0];
         e.qtdAtual=Math.max(0,e.qtdAtual+diff);
         S.movimentacoes.push({id:uid(),tipo:'ajuste',baiaId:baia.id,baiaNome:baia.nome,
-          desc:'Ajuste por conferência: '+(diff>0?'+':'')+diff.toFixed(3)+'t — '+obs,
+          desc:'Ajuste por conferência: '+(diff>0?'+':'')+fmtKg(diff)+' — '+obs,
           data:hoje(),operador:c.operador||'—',nf:'—'});
       }
     }
@@ -2824,10 +2819,10 @@ function renderKPIConsumo(){
   var estAtual=S.baias.reduce(function(s,b){return s+(b.estoques||[]).reduce(function(ss,e){return ss+e.qtdAtual;},0);},0);
 
   document.getElementById('kpi-consumo-cards').innerHTML=
-    '<div class="metric-card"><div class="metric-label">Consumido no período</div><div class="metric-value" style="font-size:20px">'+totalKg.toFixed(3)+'t</div><div class="metric-sub">'+periodoLabel+': '+dataInicio+' a '+hoje2+'</div></div>'
+    '<div class="metric-card"><div class="metric-label">Consumido no período</div><div class="metric-value" style="font-size:20px">'+fmtKg(totalKg)+'</div><div class="metric-sub">'+periodoLabel+': '+dataInicio+' a '+hoje2+'</div></div>'
     +'<div class="metric-card"><div class="metric-label">Nº de baixas</div><div class="metric-value" style="font-size:20px">'+totalBaixas+'</div></div>'
-    +'<div class="metric-card"><div class="metric-label">Mais consumido</div><div class="metric-value" style="font-size:14px;font-weight:600">'+maisConsumido+'</div><div class="metric-sub">'+maisQtd.toFixed(3)+'t</div></div>'
-    +'<div class="metric-card"><div class="metric-label">Estoque atual total</div><div class="metric-value" style="font-size:20px">'+estAtual.toFixed(3)+'t</div></div>';
+    +'<div class="metric-card"><div class="metric-label">Mais consumido</div><div class="metric-value" style="font-size:14px;font-weight:600">'+maisConsumido+'</div><div class="metric-sub">'+fmtKg(maisQtd)+'</div></div>'
+    +'<div class="metric-card"><div class="metric-label">Estoque atual total</div><div class="metric-value" style="font-size:20px">'+fmtKg(estAtual)+'</div></div>';
 
   // Chart 1: consumo por semana
   var semConsumo={};
@@ -2883,9 +2878,9 @@ function renderKPIConsumo(){
       var coberturaDias=consumoDiario>0?Math.round(estMat/consumoDiario):null;
       return '<tr>'
         +'<td style="font-weight:600">'+m+'</td>'
-        +'<td>'+consumido.toFixed(3)+'t</td>'
+        +'<td>'+fmtKg(consumido)+'</td>'
         +'<td>'+nBaixas+'</td>'
-        +'<td style="color:'+(estMat<consumido?'#A32D2D':'#0F6E56')+'">'+estMat.toFixed(3)+'t</td>'
+        +'<td style="color:'+(estMat<consumido?'#A32D2D':'#0F6E56')+'">'+fmtKg(estMat)+'</td>'
         +'<td>'+(coberturaDias!==null?'<span class="badge '+(coberturaDias<7?'badge-red':coberturaDias<30?'badge-amber':'badge-green')+'">~'+coberturaDias+' dias</span>':'—')+'</td>'
         +'</tr>';
     }).join('')+'</tbody></table>';
