@@ -451,7 +451,7 @@ function removerOperador(id){if(!confirm('Remover operador?'))return;S.operadore
 function exportarDados(){
   const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='VittiaAfford_backup_'+hoje()+'.json';a.click();
+  a.download='VittiAfford_backup_'+hoje()+'.json';a.click();
 }
 function importarDados(event){
   const file=event.target.files[0];if(!file)return;
@@ -1042,7 +1042,7 @@ function gerarRelatorio(tipo){
   }
   var xmlRows='';
   // Linha de título
-  xmlRows+='<Row ss:StyleID="s_title"><Cell ss:MergeAcross="'+(heads.length-1)+'" ss:StyleID="s_title"><Data ss:Type="String">VittiaAfford — Relatório de '+xmlEsc(tipoLabel)+' — Gerado em: '+xmlEsc(dt)+'</Data></Cell></Row>';
+  xmlRows+='<Row ss:StyleID="s_title"><Cell ss:MergeAcross="'+(heads.length-1)+'" ss:StyleID="s_title"><Data ss:Type="String">VittiAfford — Relatório de '+xmlEsc(tipoLabel)+' — Gerado em: '+xmlEsc(dt)+'</Data></Cell></Row>';
   // Cabeçalho
   xmlRows+='<Row ss:StyleID="s_head">';
   heads.forEach(function(h){xmlRows+='<Cell ss:StyleID="s_head"><Data ss:Type="String">'+xmlEsc(h)+'</Data></Cell>';});
@@ -1094,7 +1094,7 @@ function gerarRelatorio(tipo){
   var blob=new Blob([xml],{type:'application/vnd.ms-excel;charset=utf-8'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='VittiaAfford_'+tipoLabel+'_'+hoje()+'.xls';
+  a.download='VittiAfford_'+tipoLabel+'_'+hoje()+'.xls';
   a.click();
 }
 
@@ -1633,7 +1633,7 @@ function montarCorpoEmail(){
   var reprogramados=S.descargas.filter(function(d){return d._reprogramado&&d.data===hj;});
   var pendentes=S.descargas.filter(function(d){return d.status==='pendente'&&d.data===hj;});
   var linhas=[];
-  linhas.push('=== ALERTA VittiaAfford - '+fmtDate(hj)+' ===');
+  linhas.push('=== ALERTA VittiAfford - '+fmtDate(hj)+' ===');
   linhas.push('');
   if(atrasados.length){
     linhas.push('** DESCARGAS COM ATRASO ('+atrasados.length+'):');
@@ -1661,7 +1661,7 @@ function montarCorpoEmail(){
   linhas.push('Capacidade hoje: '+fmtKg(capHj)+' / '+fmtKg(cap)+' ('+Math.round(capHj/cap*100)+'%)');
   if(capHj>cap)linhas.push('ATENCAO: Capacidade diaria EXCEDIDA!');
   linhas.push('');
-  linhas.push('Gerado automaticamente pelo VittiaAfford em '+new Date().toLocaleString('pt-BR'));
+  linhas.push('Gerado automaticamente pelo VittiAfford em '+new Date().toLocaleString('pt-BR'));
   return linhas.join('\n');
 }
 
@@ -1670,7 +1670,7 @@ function enviarAlertaEmail(){
   if(!dest){alert('Configure o email de destino nas Configuracoes.');return;}
   var corpo=montarCorpoEmail();
   var hj=hoje();
-  var assunto='VittiaAfford - Alerta de Descargas '+fmtDate(hj);
+  var assunto='VittiAfford - Alerta de Descargas '+fmtDate(hj);
   var uri='mailto:'+encodeURIComponent(dest)
     +'?subject='+encodeURIComponent(assunto)
     +'&body='+encodeURIComponent(corpo);
