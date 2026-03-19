@@ -28,7 +28,9 @@ body{
 
 .nav{
   height:52px;
-  background:var(--bg);
+  background:rgba(255,255,255,0.88);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
   border-bottom:1px solid var(--border);
   display:flex;
   align-items:center;
@@ -138,14 +140,14 @@ body{
 }
 
 .card{
-  background:var(--bg);
+  background:rgba(255,255,255,0.90);
   border:1px solid var(--border);
   border-radius:var(--radius-lg);
   padding:14px 18px
 }
 
 .metric-card{
-  background:var(--bg3);
+  background:rgba(238,236,230,0.85);
   border-radius:var(--radius);
   padding:12px 14px
 }
