@@ -63,7 +63,7 @@ function fmtDT(d){if(!d)return'—';return new Date(d).toLocaleString('pt-BR',{d
 
 function fmtKg(v){
   const n=Number(v)||0;
-  return n.toLocaleString('pt-BR')+'kg';
+  return n.toLocaleString('pt-BR',{maximumFractionDigits:3})+'kg';
 }
 function fmtKgInput(v){
   // formata enquanto o usuário digita: remove não-dígitos e aplica pontos de milhar
@@ -172,7 +172,7 @@ function populateAgBaias(){
 function populateBaixaBaias(){
   const s=document.getElementById('baixa-baia');if(!s)return;
   s.innerHTML='<option value="">— Selecionar baia —</option>';
-  S.baias.filter(b=>b.estoques&&b.estoques.length>0).forEach(b=>{const tot=b.estoques.reduce((s,e)=>s+e.qtdAtual,0);s.innerHTML+=`<option value="${b.id}">${b.nome} — ${b.estoques.length} produto(s) (${tot.toFixed(1)}t)</option>`;});
+  S.baias.filter(b=>b.estoques&&b.estoques.length>0).forEach(b=>{const tot=b.estoques.reduce((s,e)=>s+e.qtdAtual,0);s.innerHTML+=`<option value="${b.id}">${b.nome} — ${b.estoques.length} produto(s) (${fmtKg(tot)})</option>`;});
 }
 
 function checkCapModal(){
@@ -180,8 +180,8 @@ function checkCapModal(){
   const ton=parseKg(document.getElementById('ag-toneladas').value)||0;
   const el=document.getElementById('ag-cap-alert');if(!data||!ton){el.innerHTML='';return;}
   const atual=getCapDia(data);const total=atual+ton;const cap=S.capDiaria||160;
-  if(total>cap)el.innerHTML=`<div class="alert-bar alert-danger">Capacidade de ${cap}t será ultrapassada (${total}t previsto).</div>`;
-  else el.innerHTML=`<div class="alert-bar alert-success">Disponível em ${fmtDate(data)}: ${(cap-atual).toFixed(1)}t.</div>`;
+  if(total>cap)el.innerHTML=`<div class="alert-bar alert-danger">Capacidade de ${fmtKg(cap)} será ultrapassada (${fmtKg(total)} previsto).</div>`;
+  else el.innerHTML=`<div class="alert-bar alert-success">Disponível em ${fmtDate(data)}: ${fmtKg(cap-atual)}.</div>`;
 }
 
 function agendarDescarga(){
@@ -191,10 +191,10 @@ function agendarDescarga(){
   const d=document.getElementById('ag-data').value;
   const h=document.getElementById('ag-hora').value;
   if(!f||!m||!t||!d||!h){alert('Preencha os campos obrigatórios (*).');return;}
-  const unid=document.getElementById('ag-unidade').value||'kg';
+  const unid='kg';
   const tonVal=Number(t)||0;
   S.descargas.push({id:uid(),fornecedor:f,material:m,toneladas:tonVal,unidade:unid,qtdOriginal:Number(t),data:d,hora:h,lote:document.getElementById('ag-lote').value,baia:document.getElementById('ag-baia').value,obs:document.getElementById('ag-obs').value,status:'pendente',nf:document.getElementById('ag-nf').value,operador:document.getElementById('ag-operador').value});
-  ['ag-fornecedor','ag-material','ag-toneladas','ag-data','ag-hora','ag-lote','ag-obs','ag-nf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('ag-unidade').value='kg';const _ms=document.getElementById('ag-material-sel');if(_ms)_ms.value='';
+  ['ag-fornecedor','ag-material','ag-toneladas','ag-data','ag-hora','ag-lote','ag-obs','ag-nf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});// ag-unidade removed;const _ms=document.getElementById('ag-material-sel');if(_ms)_ms.value='';
   document.getElementById('ag-baia').value='';document.getElementById('ag-forn-sel').value='';document.getElementById('ag-cap-alert').innerHTML='';
   saveState();closeModal('modal-agendar');render();
 }
@@ -210,7 +210,7 @@ function abrirChegada(dcId){
       <div style="font-size:13px;font-weight:600;margin-bottom:6px">${dc.material} — ${dc.fornecedor}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px">
         <div><span style="color:var(--text2)">Agendado: </span>${fmtDate(dc.data)} ${dc.hora}</div>
-        <div><span style="color:var(--text2)">Previsto: </span><strong>${dc.toneladas}t</strong></div>
+        <div><span style="color:var(--text2)">Previsto: </span><strong>${fmtKg(dc.toneladas)}</strong></div>
         <div><span style="color:var(--text2)">Lote: </span>${dc.lote||'—'}</div>
         <div><span style="color:var(--text2)">NF: </span>${dc.nf||'—'}</div>
         <div><span style="color:var(--text2)">Baia sugerida: </span>${baia?baia.nome:'Não definida'}</div>
@@ -230,7 +230,7 @@ function checkDiv(){
   const real=parseKg(document.getElementById('ch-ton').value)||0;
   const diff=real-dc.toneladas;const el=document.getElementById('ch-div-alert');
   if(!real){el.innerHTML='';return;}
-  if(Math.abs(diff)>0.1)el.innerHTML=`<div class="alert-bar alert-warning" style="margin-top:6px">Divergência: ${diff>0?'+':''}${diff.toFixed(1)}t (previsto ${dc.toneladas}t, real ${real}t).</div>`;
+  if(Math.abs(diff)>0.1)el.innerHTML=`<div class="alert-bar alert-warning" style="margin-top:6px">Divergência: ${diff>0?'+':''}${fmtKg(diff)} (previsto ${fmtKg(dc.toneladas)}, real ${fmtKg(real)}).</div>`;
   else el.innerHTML=`<div class="alert-bar alert-success" style="margin-top:6px">Quantidade confere.</div>`;
 }
 function confirmarChegada(){
@@ -253,7 +253,7 @@ function abrirAlocacao(dcId){
       <div style="font-size:13px;font-weight:600;margin-bottom:5px">${dc.material} — ${dc.fornecedor}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
         <div><span style="color:var(--text2)">Chegada: </span>${r.horaReal}</div>
-        <div><span style="color:var(--text2)">Real: </span><strong>${r.tonReal}t</strong></div>
+        <div><span style="color:var(--text2)">Real: </span><strong>'+fmtKg(r.tonReal)+'</strong></div>
         <div><span style="color:var(--text2)">NF: </span>${r.nfReal||'—'}</div>
         <div><span style="color:var(--text2)">Lote: </span>${r.loteReal||'—'}</div>
       </div>
@@ -280,12 +280,12 @@ function updateAlocarInfo(){
   el.innerHTML=`<div style="background:var(--bg3);border-radius:var(--radius);padding:9px 11px;font-size:12px;margin-bottom:8px">
     <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--text2)">Depósito</span><span>${dep?dep.nome:'—'}</span></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--text2)">Localização</span><span>${b.loc||'—'}</span></div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--text2)">Capacidade</span><span>${b.cap}t</span></div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--text2)">Carga a alocar</span><span style="font-weight:600">${ton}t</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--text2)">Capacidade</span><span>${fmtKg(b.cap)}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--text2)">Carga a alocar</span><span style="font-weight:600">${fmtKg(ton)}</span></div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${excede?'#E24B4A':pct>80?'#EF9F27':'#1D9E75'}"></div></div>
     <div style="margin-top:3px;color:${excede?'#A32D2D':'var(--text2)'}">${excede?'Excede capacidade!':pct+'% da capacidade'}</div>
   </div>`;
-  document.getElementById('alocar-alert').innerHTML=excede?`<div class="alert-bar alert-danger">Carga (${ton}t) excede a capacidade (${b.cap}t).</div>`:'';
+  document.getElementById('alocar-alert').innerHTML=excede?`<div class="alert-bar alert-danger">Carga (${fmtKg(ton)}) excede a capacidade (${fmtKg(b.cap)}).</div>`:'';
 }
 function confirmarAlocacao(){
   const dc=S.descargas.find(d=>d.id===_alocarId);if(!dc)return;
@@ -303,7 +303,7 @@ function confirmarAlocacao(){
   dc.status='armazenado';
   dc.alocacao={baiaId,baiaName:baia.nome,seguiuSugestao:dc.baia===baiaId,baiaSugName:baiaSug?baiaSug.nome:null,obs:document.getElementById('alocar-obs').value,alocadoAt:new Date().toISOString()};
   const opNomeStr=opNome(r.operadorId||S.turnoAtivo.operadorId);
-  S.movimentacoes.push({id:uid(),tipo:'entrada',baiaId:baia.id,baiaNome:baia.nome,desc:`Entrada: ${dc.material} — ${dc.fornecedor} (${r.tonReal}t, Lote ${r.loteReal||'—'})`,data:hoje(),operador:opNomeStr,nf:r.nfReal||dc.nf||'—'});
+  S.movimentacoes.push({id:uid(),tipo:'entrada',baiaId:baia.id,baiaNome:baia.nome,desc:`Entrada: ${dc.material} — ${dc.fornecedor} ('+fmtKg(r.tonReal)+', Lote ${r.loteReal||'—'})`,data:hoje(),operador:opNomeStr,nf:r.nfReal||dc.nf||'—'});
   S.recebimentos.push({id:uid(),dcId:dc.id,fornecedor:dc.fornecedor,material:dc.material,tonPrev:dc.toneladas,tonReal:r.tonReal,lote:r.loteReal||dc.lote,nf:r.nfReal||dc.nf,horaChegada:r.horaReal,placa:r.placa,motorista:r.motorista,baiaNome:baia.nome,baiaSugNome:baiaSug?baiaSug.nome:null,seguiuSugestao:dc.baia===baiaId,divergencia:r.divergencia,data:dc.data,operador:opNomeStr,turno:turnoLabel(S.turnoAtivo.turno),finalizadoAt:new Date().toISOString()});
   saveState();closeModal('modal-alocar');render();
 }
@@ -328,15 +328,15 @@ function registrarBaixa(){
   const baiaEstoque=baia.estoques[0];
   const opNomeStr=opNome(opId)||'—';
   if(tipo==='parcial'){
-    if(!qtdInput||qtdInput>baiaEstoque.qtdAtual){fb.innerHTML=`<div class="alert-bar alert-warning">Qtd inválida (disponível: ${baiaEstoque.qtdAtual}t).</div>`;return;}
+    if(!qtdInput||qtdInput>baiaEstoque.qtdAtual){fb.innerHTML=`<div class="alert-bar alert-warning">Qtd inválida (disponível: ${fmtKg(baiaEstoque.qtdAtual)}).</div>`;return;}
     S.baixas.push({id:uid(),baiaId,baiaName:baia.nome,op,nf,lote:lote||baiaEstoque.lote||'—',tipo:'parcial',qtd:qtdInput,material:baiaEstoque.fornecedorNome,data:hoje(),fornecedor:baiaEstoque.fornecedor,operador:opNomeStr,turno:turnoLabel(S.turnoAtivo.turno)});
-    S.movimentacoes.push({id:uid(),tipo:'baixa',baiaId:baia.id,baiaNome:baia.nome,desc:`Baixa parcial: ${qtdInput}t — ${op}`,data:hoje(),operador:opNomeStr,nf:nf||'—'});
+    S.movimentacoes.push({id:uid(),tipo:'baixa',baiaId:baia.id,baiaNome:baia.nome,desc:`Baixa parcial: ${fmtKg(qtdInput)} — ${op}`,data:hoje(),operador:opNomeStr,nf:nf||'—'});
     baiaEstoque.qtdUsada+=qtdInput;baiaEstoque.qtdAtual-=qtdInput;
     if(baiaEstoque.qtdAtual<=0)baia.estoques=baia.estoques.filter(e=>e.id!==baiaEstoque.id);
   } else {
     const qtd=baiaEstoque.qtdAtual;
     S.baixas.push({id:uid(),baiaId,baiaName:baia.nome,op,nf,lote:lote||baiaEstoque.lote||'—',tipo:'total',qtd,material:baiaEstoque.fornecedorNome,data:hoje(),fornecedor:baiaEstoque.fornecedor,operador:opNomeStr,turno:turnoLabel(S.turnoAtivo.turno)});
-    S.movimentacoes.push({id:uid(),tipo:'baixa',baiaId:baia.id,baiaNome:baia.nome,desc:`Baixa total: ${qtd}t — ${op}`,data:hoje(),operador:opNomeStr,nf:nf||'—'});
+    S.movimentacoes.push({id:uid(),tipo:'baixa',baiaId:baia.id,baiaNome:baia.nome,desc:`Baixa total: ${fmtKg(qtd)} — ${op}`,data:hoje(),operador:opNomeStr,nf:nf||'—'});
     baia.estoques=baia.estoques.filter(e=>e.id!==baiaEstoque.id);
   }
   fb.innerHTML='<div class="alert-bar alert-success">Baixa registrada com sucesso.</div>';
@@ -400,9 +400,9 @@ function abrirBaiaDet(id){
     <div class="info-row"><span class="info-label">Fornecedor (razão)</span><span>${e.fornecedor}</span></div>
     <div class="info-row"><span class="info-label">Número de lote</span><span>${e.lote||'—'}</span></div>
     <div class="info-row"><span class="info-label">NF</span><span>${e.nf||'—'}</span></div>
-    <div class="info-row"><span class="info-label">Quantidade total</span><span>${e.qtdTotal}t</span></div>
-    <div class="info-row"><span class="info-label">Quantidade atual</span><span style="font-weight:600">${e.qtdAtual}t</span></div>
-    <div class="info-row"><span class="info-label">Quantidade utilizada</span><span>${e.qtdUsada}t</span></div>
+    <div class="info-row"><span class="info-label">Quantidade total</span><span>${fmtKg(e.qtdTotal)}</span></div>
+    <div class="info-row"><span class="info-label">Quantidade atual</span><span style="font-weight:600">${fmtKg(e.qtdAtual)}</span></div>
+    <div class="info-row"><span class="info-label">Quantidade utilizada</span><span>${fmtKg(e.qtdUsada)}</span></div>
     <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:${pct}%;background:${pct>80?'#E24B4A':pct>50?'#EF9F27':'#1D9E75'}"></div></div>
     <div style="font-size:11px;color:var(--text2);margin-top:3px">${pct}% da capacidade</div>`;
   } else html+=`<div class="divider"></div><div class="empty-state">Baia livre</div>`;
@@ -476,7 +476,7 @@ function renderTurnoBar(){
 
 function render(){
   autoAvancarDescargas();
-  renderTurnoBar();renderDashboard();renderKPIs();updateModuleBadges();renderConfig();updateBadge();renderDashKPIMini();
+  renderTurnoBar();renderDashboard();if(document.getElementById('page-kpis').classList.contains('active'))renderKPIs();updateModuleBadges();renderConfig();updateBadge();renderDashKPIMini();
 }
 function updateBadge(){
   const p=S.descargas.filter(d=>d.status==='pendente'||d.status==='chegou').length;
@@ -499,13 +499,13 @@ function renderDashboard(){
 
   const alertEl=document.getElementById('dash-alerts');
   let alerts='';
-  if(capHj>cap)alerts+=`<div class="alert-bar alert-danger" style="margin-bottom:10px">&#9888; Capacidade ultrapassada hoje: ${capHj}t de ${cap}t.</div>`;
+  if(capHj>cap)alerts+=`<div class="alert-bar alert-danger" style="margin-bottom:10px">&#9888; Capacidade ultrapassada hoje: ${fmtKg(capHj)} de ${fmtKg(cap)}.</div>`;
   if(atrasados.length)alerts+=`<div class="alert-bar alert-warning" style="margin-bottom:10px">&#9200; ${atrasados.length} caminhao(oes) com atraso: ${atrasados.map(d=>d.fornecedor+' (prev. '+d.hora+')').join(' | ')}</div>`;
   alertEl.innerHTML=alerts;
 
   document.getElementById('metrics-row').innerHTML=`
-    <div class="metric-card"><div class="metric-label">Total em estoque</div><div class="metric-value">${totalTonMat.toFixed(1)}t</div><div class="metric-sub">${(totalTonMat*1000).toLocaleString('pt-BR')} kg</div></div>
-    <div class="metric-card"><div class="metric-label">Disponivel p/ recebimento</div><div class="metric-value" style="color:${capDisp>0?'#1D9E75':'#E24B4A'}">${capDisp.toFixed(1)}t</div><div class="metric-sub">de ${cap}t capacidade diaria</div></div>
+    <div class="metric-card"><div class="metric-label">Total em estoque</div><div class="metric-value">${fmtKg(totalTonMat)}</div><div class="metric-sub">${fmtKg(totalTonMat)}</div></div>
+    <div class="metric-card"><div class="metric-label">Disponivel p/ recebimento</div><div class="metric-value" style="color:${capDisp>0?'#1D9E75':'#E24B4A'}">${fmtKg(capDisp)}</div><div class="metric-sub">de ${fmtKg(cap)} capacidade diaria</div></div>
     <div class="metric-card"><div class="metric-label">Baias livres / ocupadas</div><div class="metric-value"><span style="color:#1D9E75">${livre}</span><span style="font-size:14px;color:var(--text2)"> / <span style="color:#378ADD">${ocup}</span></span></div><div class="metric-sub">${baias.length} baias total</div></div>
     <div class="metric-card"><div class="metric-label">Atrasos / Aguardando</div><div class="metric-value" style="color:${(atrasados.length+pendRec)>0?'#854F0B':'inherit'}">${atrasados.length} / ${pendRec}</div><div class="metric-sub">alertas / recebimento</div></div>`;
 
@@ -574,7 +574,7 @@ function renderAgenda(){
     return`<div style="margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
         <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">${day===hj?'Hoje, ':day===amanha?'Amanhã, ':''}${fmtDate(day)}</div>
-        ${over?`<span class="badge badge-red">Excedido: ${capDia}t/${cap}t</span>`:`<span class="badge badge-gray">${capDia}t/${cap}t</span>`}
+        ${over?`<span class="badge badge-red">Excedido: ${fmtKg(capDia)}/${fmtKg(cap)}</span>`:`<span class="badge badge-gray">${fmtKg(capDia)}/${fmtKg(cap)}</span>`}
       </div>
       ${days[day].map(d=>{
         const baia=d.baia?S.baias.find(b=>b.id===d.baia):null;
@@ -584,7 +584,7 @@ function renderAgenda(){
             <div style="min-width:40px;font-size:12px;font-weight:600;color:${isAtr?'#A32D2D':'var(--blue)'};padding-top:1px">${d.hora}</div>
             <div style="flex:1">
               <div style="font-size:13px;font-weight:600">${d.material} — ${d.fornecedor}</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:1px">${d.toneladas}t${d.lote?' · '+d.lote:''}${d.nf?' · '+d.nf:''}${baia?' · Baia sugerida: '+baia.nome:''}${d.operador?' · '+opNome(d.operador):''}${isAtr?' · ⚠ ATRASADO':''}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:1px">'+fmtKg(d.toneladas)+'${d.lote?' · '+d.lote:''}${d.nf?' · '+d.nf:''}${baia?' · Baia sugerida: '+baia.nome:''}${d.operador?' · '+opNome(d.operador):''}${isAtr?' · ⚠ ATRASADO':''}</div>
             </div>
             <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
               <span class="badge ${sMap[d.status]||'badge-gray'}">${sLabel[d.status]||d.status}</span>
@@ -613,9 +613,9 @@ function renderRecebimento(){
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
         <div>
           <div style="font-size:13px;font-weight:600">${d.material} — ${d.fornecedor}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">${fmtDate(d.data)} ${d.hora} · ${d.toneladas}t${baia?' · Sugerida: '+baia.nome:''}${d.nf?' · NF: '+d.nf:''}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${fmtDate(d.data)} ${d.hora} · ${fmtKg(d.toneladas)}${baia?' · Sugerida: '+baia.nome:''}${d.nf?' · NF: '+d.nf:''}</div>
           ${isAtr?`<span class="badge badge-red" style="margin-top:4px">⚠ Atrasado — previsto ${d.hora}</span>`:''}
-          ${isChegou?`<div style="margin-top:5px"><span class="badge badge-blue">Chegou ${d.recebimento.horaReal} · ${d.recebimento.tonReal}t${d.recebimento.placa?' · '+d.recebimento.placa:''}</span>${d.recebimento.divergencia?' <span class="badge badge-red">Divergência</span>':''}</div>`:''}
+          ${isChegou?`<div style="margin-top:5px"><span class="badge badge-blue">Chegou ${d.recebimento.horaReal} · '+fmtKg(d.recebimento.tonReal)+'${d.recebimento.placa?' · '+d.recebimento.placa:''}</span>${d.recebimento.divergencia?' <span class="badge badge-red">Divergência</span>':''}</div>`:''}
         </div>
         <div style="display:flex;gap:5px;flex-shrink:0">
           ${!isChegou?`<button class="btn btn-warning btn-sm" onclick="abrirChegada('${d.id}')">Confirmar chegada</button>`:''}
@@ -638,7 +638,7 @@ function renderRecebimento(){
     <div class="rec-card" style="cursor:pointer" onclick="verRecDet('${r.id}')">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <div><div style="font-size:13px;font-weight:600">${r.material} — ${r.fornecedor}</div>
-        <div style="font-size:11px;color:var(--text2)">${fmtDate(r.data)} · ${r.tonReal}t · ${r.baiaNome}${r.nf?' · NF: '+r.nf:''} · ${r.operador}</div></div>
+        <div style="font-size:11px;color:var(--text2)">${fmtDate(r.data)} · ${fmtKg(r.tonReal)} · ${r.baiaNome}${r.nf?' · NF: '+r.nf:''} · ${r.operador}</div></div>
         <div style="display:flex;gap:4px;flex-wrap:wrap">${r.divergencia?'<span class="badge badge-amber">Divergência</span>':''} ${!r.seguiuSugestao&&r.baiaSugNome?'<span class="badge badge-blue">Baia alterada</span>':''} <span class="badge badge-green">Concluído</span></div>
       </div>
     </div>`).join('');
@@ -649,8 +649,8 @@ function verRecDet(id){
   document.getElementById('rec-det-body').innerHTML=`
     <div class="info-row"><span class="info-label">Data</span><span>${fmtDate(r.data)}</span></div>
     <div class="info-row"><span class="info-label">Hora de chegada</span><span>${r.horaChegada||'—'}</span></div>
-    <div class="info-row"><span class="info-label">Ton. previstas</span><span>${r.tonPrev}t</span></div>
-    <div class="info-row"><span class="info-label">Ton. reais</span><span style="font-weight:600">${r.tonReal}t</span></div>
+    <div class="info-row"><span class="info-label">Kg previstas</span><span>${fmtKg(r.tonPrev)}</span></div>
+    <div class="info-row"><span class="info-label">Kg reais</span><span style="font-weight:600">${fmtKg(r.tonReal)}</span></div>
     <div class="info-row"><span class="info-label">Divergência</span><span class="badge ${r.divergencia?'badge-red':'badge-green'}">${r.divergencia?'Sim':'Não'}</span></div>
     <div class="info-row"><span class="info-label">Lote</span><span>${r.lote||'—'}</span></div>
     <div class="info-row"><span class="info-label">NF</span><span>${r.nf||'—'}</span></div>
@@ -682,7 +682,7 @@ function renderDepositos(){
       else cls=baiaTemEstoque(b)?(b.cap>0&&_tot/b.cap>.9?'alerta':'ocupada'):'livre';
       const _e0=baiaPrimEstoque(b);return`<div class="baia-card ${cls}" onclick="abrirBaiaDet('${b.id}')">
         <div class="baia-name">${b.nome}${b.estoques&&b.estoques.length>1?' ('+b.estoques.length+'p)':''}</div>
-        <div class="baia-info">${b.status==='inutilizada'?'⚠ Inutilizada':b.status==='manutencao'?'🔧 Manutenção':_e0?_e0.fornecedorNome:'Livre'}${_e0&&b.status!=='inutilizada'&&b.status!=='manutencao'?`<br>${_tot.toFixed(1)}/${b.cap}t`:''}</div>
+        <div class="baia-info">${b.status==='inutilizada'?'⚠ Inutilizada':b.status==='manutencao'?'🔧 Manutenção':_e0?_e0.fornecedorNome:'Livre'}${_e0&&b.status!=='inutilizada'&&b.status!=='manutencao'?`<br>${_tot.toFixed(1)}/fmtKg(b.cap)}`:''}</div>
         ${b.material&&!baiaTemEstoque(b)&&!b.status?`<div class="baia-info" style="margin-top:2px">Sug: ${b.material}</div>`:''}
       </div>`;}).join('')}</div>`:'<div class="empty-state" style="padding:12px">Nenhuma baia neste depósito — clique em "+ Baia".</div>'}
     </div>`;
@@ -937,7 +937,7 @@ function renderBaixa(){
         <span class="badge ${b.tipo==='total'?'badge-red':'badge-amber'}">${b.tipo}</span>
         <span style="font-size:11px;color:var(--text2);margin-left:auto">${fmtDate(b.data)}</span>
       </div>
-      <div style="font-size:11px;color:var(--text2)">${b.fornecedor} · ${b.qtd}t · OP: <strong style="color:var(--text)">${b.op}</strong>${b.nf?' · NF: '+b.nf:''}${b.lote&&b.lote!=='—'?' · Lote: '+b.lote:''} · ${b.turno||''} · ${b.operador||'—'}</div>
+      <div style="font-size:11px;color:var(--text2)">${b.fornecedor} · ${fmtKg(b.qtd)} · OP: <strong style="color:var(--text)">${b.op}</strong>${b.nf?' · NF: '+b.nf:''}${b.lote&&b.lote!=='—'?' · Lote: '+b.lote:''} · ${b.turno||''} · ${b.operador||'—'}</div>
     </div>`).join('');
 }
 
@@ -976,7 +976,7 @@ function converter(){
   const el=document.getElementById('conv-resultado');
   if(isNaN(v)||v<=0){el.textContent='—';return;}
   if(u==='kg'){el.textContent=(v*1000).toLocaleString('pt-BR',{maximumFractionDigits:2})+' kg';}
-  else{el.textContent=(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:4})+' ton';}
+  else{el.textContent=(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:4})+'kg';}
 }
 
 function csvEscape(v){if(v===null||v===undefined)return'';const s=String(v);return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s;}
@@ -1219,7 +1219,7 @@ function renderCapBar(){
 
 function salvarMaterial(){
   const n=document.getElementById('mat-nome').value.trim();if(!n){alert('Informe o nome.');return;}
-  S.materiais.push({id:uid(),nome:n,unidade:document.getElementById('mat-unidade').value,codigo:document.getElementById('mat-codigo').value,categoria:document.getElementById('mat-categoria').value,obs:document.getElementById('mat-obs').value});
+  S.materiais.push({id:uid(),nome:n,unidade:'kg',codigo:document.getElementById('mat-codigo').value,categoria:document.getElementById('mat-categoria').value,obs:document.getElementById('mat-obs').value});
   ['mat-nome','mat-codigo','mat-categoria','mat-obs'].forEach(id=>document.getElementById(id).value='');
   saveState();closeModal('modal-material');render();
 }
@@ -1244,9 +1244,9 @@ function salvarTransferencia(){
   const f=document.getElementById('tr-fornecedor').value.trim();
   const nf=document.getElementById('tr-nf').value.trim();
   if(!f||!nf){alert('Informe fornecedor e número da NF.');return;}
-  const unid=document.getElementById('tr-unidade').value;
+  const unid='kg';
   const qtdRaw=parseFloat(document.getElementById('tr-qtd').value)||0;
-  const qtdTon=unid==='kg'?qtdRaw/1000:qtdRaw;
+  const qtdTon=qtdRaw; // unit always kg
   const t={
     id:uid(),fornecedor:f,nf,
     mp:document.getElementById('tr-mp').value,
@@ -1370,7 +1370,7 @@ function abrirEditarTransf(id){
   document.getElementById('edit-tr-mp').value=t.mp||'';
   document.getElementById('edit-tr-mapa').value=t.mapa||'';
   document.getElementById('edit-tr-qtd').value=t.qtdOriginal||t.qtd||'';
-  document.getElementById('edit-tr-unidade').value=t.unidadeOriginal||'kg';
+  // edit-tr-unidade removed;
   document.getElementById('edit-tr-data-matriz').value=t.dataMatriz||'';
   document.getElementById('edit-tr-data-transf').value=t.dataTransf||'';
   document.getElementById('edit-tr-hora').value=t.hora||'08:00';
@@ -1389,7 +1389,7 @@ function abrirEditarTransf(id){
 function salvarEdicaoTransf(){
   var id=document.getElementById('modal-editar-transf')._editId;
   var t=S.transferencias.find(function(x){return x.id===id;});if(!t)return;
-  var unid=document.getElementById('edit-tr-unidade').value;
+  var unid='kg';
   var qtdRaw=parseFloat(document.getElementById('edit-tr-qtd').value)||t.qtd;
   t.fornecedor=document.getElementById('edit-tr-fornecedor').value.trim()||t.fornecedor;
   t.material=document.getElementById('edit-tr-material').value.trim();
@@ -1397,7 +1397,7 @@ function salvarEdicaoTransf(){
   t.mp=document.getElementById('edit-tr-mp').value.trim();
   t.mapa=document.getElementById('edit-tr-mapa').value.trim();
   t.qtdOriginal=qtdRaw;t.unidadeOriginal=unid;
-  t.qtd=unid==='kg'?qtdRaw/1000:qtdRaw;
+  t.qtd=qtdRaw; // unit always kg
   t.dataMatriz=document.getElementById('edit-tr-data-matriz').value;
   t.dataTransf=document.getElementById('edit-tr-data-transf').value;
   t.hora=document.getElementById('edit-tr-hora').value||'08:00';
@@ -1482,11 +1482,11 @@ function confirmarRecebimentoTransf(){
   });
   S.movimentacoes.push({
     id:uid(),tipo:'entrada',baiaId:baia.id,baiaNome:baia.nome,
-    desc:'Entrada via transferencia: '+(t.material||'—')+' - '+t.fornecedor+' ('+tonReal+'t, NF '+t.nf+(t.mapa?', Mapa '+t.mapa:'')+')',
+    desc:'Entrada via transferencia: '+(t.material||'—')+' - '+t.fornecedor+' ('+fmtKg(tonReal)+', NF '+t.nf+(t.mapa?', Mapa '+t.mapa:'')+')',
     data:hoje(),operador:opNomeStr,nf:t.nf
   });
   saveState();closeModal('modal-confirmar-receb-transf');render();
-  alert('Recebimento confirmado!\nBaia '+baia.nome+' alocada com '+tonReal+'t.\nRegistro criado na aba Recebimento.');
+  alert('Recebimento confirmado!\nBaia '+baia.nome+' alocada com '+fmtKg(tonReal)+'.\nRegistro criado na aba Recebimento.');
 }
 
 function desfazerRecebimentoTransf(id){
@@ -1556,8 +1556,8 @@ function lancarEstoqueManual(){
   if(baia.estoques.length>0){
     if(!confirm('Esta baia ja possui '+baia.estoques.length+' produto(s) armazenado(s).\nDeseja adicionar mais um produto?'))return;
   }
-  var unid=document.getElementById('em-unidade').value;
-  var qtdTon=unid==='kg'?qtdRaw/1000:qtdRaw;
+  var unid='kg';
+  var qtdTon=qtdRaw; // unit always kg
   var mat=document.getElementById('em-material').value.trim();
   var lote=document.getElementById('em-lote').value.trim();
   var nf=document.getElementById('em-nf').value.trim();
@@ -1623,7 +1623,7 @@ function montarCorpoEmail(){
   if(atrasados.length){
     linhas.push('** DESCARGAS COM ATRASO ('+atrasados.length+'):');
     atrasados.forEach(function(d){
-      linhas.push('  - '+d.hora+' | '+d.fornecedor+' | '+d.material+' | '+d.toneladas+'t | NF: '+(d.nf||'—'));
+      linhas.push('  - '+d.hora+' | '+d.fornecedor+' | '+d.material+' | '+fmtKg(d.toneladas)+' | NF: '+(d.nf||'—'));
     });
     linhas.push('');
   }
@@ -1722,7 +1722,7 @@ function abrirModalOcorrencia(id){
   var sd=document.getElementById('oc-descarga');
   sd.innerHTML='<option value="">Nenhuma específica</option>';
   S.recebimentos.slice(-30).reverse().forEach(function(r){
-    sd.innerHTML+='<option value="'+r.id+'">'+fmtDate(r.data)+' - '+r.fornecedor+' ('+r.tonReal+'t)</option>';
+    sd.innerHTML+='<option value="'+r.id+'">'+fmtDate(r.data)+' - '+r.fornecedor+' ('+fmtKg(r.tonReal)+')</option>';
   });
   var so=document.getElementById('oc-operador');
   so.innerHTML='<option value="">Selecionar</option>';
@@ -1801,7 +1801,7 @@ function verDetalheOcorr(id){
     +'<div class="info-row"><span class="info-label">Status</span><span><span class="badge '+(STATUS_BADGE[oc.status]||'badge-gray')+'">'+(STATUS_LABEL[oc.status]||oc.status)+'</span></span></div>'
     +'<div class="info-row"><span class="info-label">Data</span><span>'+fmtDate(oc.data)+'</span></div>'
     +'<div class="info-row"><span class="info-label">NF</span><span>'+(oc.nf||'—')+'</span></div>'
-    +(rec?'<div class="info-row"><span class="info-label">Descarga</span><span>'+fmtDate(rec.data)+' - '+rec.tonReal+'t</span></div>':'')
+    +(rec?'<div class="info-row"><span class="info-label">Descarga</span><span>'+fmtDate(rec.data)+' - '+fmtKg(rec.tonReal)+'</span></div>':'')
     +'<div class="info-row"><span class="info-label">Responsável</span><span>'+(oc.responsavel||'—')+'</span></div>'
     +'<div class="divider"></div>'
     +'<div style="margin-bottom:8px"><div class="form-label" style="margin-bottom:4px">Descrição</div><div style="font-size:13px">'+oc.descricao+'</div></div>'
@@ -1924,7 +1924,7 @@ function renderKPIs(){
   destroyChart('entradas');
   var ctxE=document.getElementById('chart-entradas');
   if(ctxE){
-    _kpiCharts['entradas']=new Chart(ctxE,{type:'bar',data:{labels:semKeys.map(function(k){return fmtDate(k);}),datasets:[{label:'Ton. recebidas',data:semKeys.map(function(k){return Math.round(semEnt[k]*10)/10;}),backgroundColor:'#1D9E7566',borderColor:'#1D9E75',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#00000011'}}}}});
+    _kpiCharts['entradas']=new Chart(ctxE,{type:'bar',data:{labels:semKeys.map(function(k){return fmtDate(k);}),datasets:[{label:'Kg recebidas',data:semKeys.map(function(k){return Math.round(semEnt[k]*10)/10;}),backgroundColor:'#1D9E7566',borderColor:'#1D9E75',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#00000011'}}}}});
   }
   // Chart 2: Saídas por semana
   var semSai={};
@@ -1933,7 +1933,7 @@ function renderKPIs(){
   destroyChart('saidas');
   var ctxS=document.getElementById('chart-saidas');
   if(ctxS){
-    _kpiCharts['saidas']=new Chart(ctxS,{type:'bar',data:{labels:semSKeys.map(function(k){return fmtDate(k);}),datasets:[{label:'Ton. baixadas',data:semSKeys.map(function(k){return Math.round(semSai[k]*10)/10;}),backgroundColor:'#E24B4A66',borderColor:'#E24B4A',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#00000011'}}}}});
+    _kpiCharts['saidas']=new Chart(ctxS,{type:'bar',data:{labels:semSKeys.map(function(k){return fmtDate(k);}),datasets:[{label:'Kg baixadas',data:semSKeys.map(function(k){return Math.round(semSai[k]*10)/10;}),backgroundColor:'#E24B4A66',borderColor:'#E24B4A',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#00000011'}}}}});
   }
   // Chart 3: Ranking fornecedores
   var fornTon={};
@@ -1942,7 +1942,7 @@ function renderKPIs(){
   destroyChart('fornecedores');
   var ctxF=document.getElementById('chart-fornecedores');
   if(ctxF&&fornArr.length){
-    _kpiCharts['fornecedores']=new Chart(ctxF,{type:'bar',data:{labels:fornArr.map(function(f){return f.nome.length>14?f.nome.slice(0,14)+'…':f.nome;}),datasets:[{label:'Ton.',data:fornArr.map(function(f){return Math.round(f.ton*10)/10;}),backgroundColor:'#378ADD66',borderColor:'#378ADD',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'#00000011'}}}}});
+    _kpiCharts['fornecedores']=new Chart(ctxF,{type:'bar',data:{labels:fornArr.map(function(f){return f.nome.length>14?f.nome.slice(0,14)+'…':f.nome;}),datasets:[{label: 'Kg',data:fornArr.map(function(f){return Math.round(f.ton*10)/10;}),backgroundColor:'#378ADD66',borderColor:'#378ADD',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'#00000011'}}}}});
   }
   // Chart 4: Divergências por fornecedor
   var fornDiv={};
@@ -2162,7 +2162,7 @@ function onAcertoBaiaChange(){
   if(!baia){calcAcerto();return;}
   if(!baia.estoques){baia.estoques=baia.estoque?[baia.estoque]:[];delete baia.estoque;}
   baia.estoques.forEach(function(e){
-    loteSel.innerHTML+='<option value="'+e.id+'">'+e.lote+' — '+e.fornecedorNome+' ('+e.qtdAtual.toFixed(3)+'t)</option>';
+    loteSel.innerHTML+='<option value="'+e.id+'">'+e.lote+' — '+e.fornecedorNome+' ('+fmtKg(e.qtdAtual)+')</option>';
   });
   calcAcerto();
 }
@@ -2425,14 +2425,14 @@ function calcConferencia(){
     b.estoques.forEach(function(e){if(e.fornecedorNome===prod||e.material===prod)tot+=e.qtdAtual;});
   });
   var diff=fisica-tot;
-  if(divEl)divEl.value=(diff>0?'+':'')+diff.toFixed(3)+' ton';
+  if(divEl)divEl.value=(diff>0?'+':'')+fmtKg(diff);
   var resEl=document.getElementById('cf-resultado');
   if(resEl)resEl.value=Math.abs(diff)>0.001?'divergencia':'conforme';
   if(alertEl){
     var absDiff=Math.abs(diff);
     var pct=tot>0?Math.round(absDiff/tot*1000)/10:0;
     if(absDiff>0.001)
-      alertEl.innerHTML='<div class="alert-bar '+(pct>5?'alert-danger':'alert-warning')+'" style="margin-bottom:8px">Divergencia de '+(diff>0?'+':'')+diff.toFixed(3)+'t ('+pct+'%). Sistema: '+tot.toFixed(3)+'t / Conferido: '+fisica.toFixed(3)+'t</div>';
+      alertEl.innerHTML='<div class="alert-bar '+(pct>5?'alert-danger':'alert-warning')+'" style="margin-bottom:8px">Divergencia de '+(diff>0?'+':'')+fmtKg(diff)+' ('+pct+'%). Sistema: '+tot.toFixed(3)+'t / Conferido: '+fisica.toFixed(3)+'t</div>';
     else
       alertEl.innerHTML='<div class="alert-bar alert-success" style="margin-bottom:8px">Estoque conforme. Sistema e conferencia coincidem.</div>';
   }

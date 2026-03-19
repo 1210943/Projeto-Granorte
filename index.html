@@ -150,7 +150,7 @@ body::before {
   </div>
   <div class="row row-2" style="margin-bottom:12px">
     <div class="card">
-      <div class="section-title">Ranking de fornecedores (ton recebidas)</div>
+      <div class="section-title">Ranking de fornecedores (kg recebidos)</div>
       <div style="position:relative;height:220px"><canvas id="chart-fornecedores"></canvas></div>
     </div>
     <div class="card">
@@ -485,21 +485,7 @@ body::before {
       <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Exportar Excel</button>
     </div>
   </div>
-  <div class="card">
-    <div class="section-title">Conversor kg ↔ Quantidade (kg)</div>
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div><div class="form-label">Valor</div><input type="number" id="conv-valor" placeholder="0.00" step="0.001" style="width:140px" oninput="converter()"></div>
-      <div><div class="form-label">Unidade de entrada</div>
-        <select id="conv-unid" style="width:160px" onchange="converter()">
-          <option value="kg">Quantidade (kg) (kg)</option>
-          <option value="kg">Quilogramas (kg)</option>
-        </select>
-      </div>
-      <div style="font-size:24px;color:var(--text2);padding-top:16px">=</div>
-      <div><div class="form-label">Resultado</div><div id="conv-resultado" style="font-size:20px;font-weight:600;color:#1D3557;padding-top:4px">—</div></div>
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:10px">1 tonelada = 1.000 kg  |  Capacidade diária padrão: 160 ton = 160.000 kg</div>
-  </div>
+
 </div>
 
 <div id="page-config" class="page">
@@ -607,7 +593,7 @@ body::before {
       </div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr">
         <div><div class="form-label">Quantidade *</div><input type="number" id="ag-quantidade (kg)" min="0.01" step="0.01" placeholder="0.00" oninput="checkCapModal()"></div>
-        <div><div class="form-label">Unidade</div><select id="ag-unidade"><option value="kg">Quantidade (kg) (kg)</option><option value="kg">Quilogramas (kg)</option></select></div>
+        <div><div class="form-label">Unidade</div></div>
         <div><div class="form-label">Data *</div><input type="date" id="ag-data" oninput="checkCapModal()"></div>
         <div><div class="form-label">Previsão hora *</div><input type="time" id="ag-hora"></div>
         <div><div class="form-label">Lote</div><input type="text" id="ag-lote" placeholder="L2024-001"></div>
@@ -706,7 +692,7 @@ body::before {
     <div class="modal-body">
       <div class="form-row form-row-2">
         <div><div class="form-label">Nome do material *</div><input type="text" id="mat-nome" placeholder="Ex: Trigo, Soja, Farinha..."></div>
-        <div><div class="form-label">Unidade padrão</div><select id="mat-unidade"><option value="kg">Quantidade (kg) (kg)</option><option value="kg">Quilogramas (kg)</option></select></div>
+        <div><div class="form-label">Unidade padrão</div></div>
       </div>
       <div class="form-row form-row-2">
         <div><div class="form-label">Código interno</div><input type="text" id="mat-codigo" placeholder="Ex: MP-001"></div>
@@ -739,7 +725,7 @@ body::before {
         <div><div class="form-label">Quantidade</div><input type="number" id="tr-qtd" min="0.01" step="0.01" placeholder="0.00"></div>
       </div>
       <div class="form-row form-row-2">
-        <div><div class="form-label">Unidade</div><select id="tr-unidade"><option value="kg">Quantidade (kg) (kg)</option><option value="kg">Quilogramas (kg)</option></select></div>
+        <div><div class="form-label">Unidade</div></div>
         <div><div class="form-label">Hora prevista de chegada</div><input type="time" id="tr-hora" value="08:00"></div>
       </div>
       <div class="form-row form-row-2">
@@ -780,7 +766,7 @@ body::before {
       </div>
       <div class="form-row form-row-2">
         <div><div class="form-label">Quantidade</div><input type="number" id="edit-tr-qtd" min="0.001" step="0.001"></div>
-        <div><div class="form-label">Unidade</div><select id="edit-tr-unidade"><option value="kg">Quantidade (kg) (kg)</option><option value="kg">Quilogramas (kg)</option></select></div>
+        <div><div class="form-label">Unidade</div></div>
       </div>
       <div class="form-row form-row-2">
         <div><div class="form-label">Data chegada na matriz</div><input type="date" id="edit-tr-data-matriz"></div>
@@ -853,7 +839,7 @@ body::before {
       <div class="form-row form-row-3">
         <div><div class="form-label">NF</div><input type="text" id="em-nf" placeholder="NF-00123"></div>
         <div><div class="form-label">Quantidade *</div><input type="number" id="em-qtd" class="input-kg" min="0.001" step="0.001" placeholder="0.000"></div>
-        <div><div class="form-label">Unidade</div><select id="em-unidade"><option value="kg">Quantidade (kg)</option><option value="kg">Quilogramas</option></select></div>
+        <div><div class="form-label">Unidade</div></div>
       </div>
       <div class="form-row form-row-2">
         <div><div class="form-label">Big Bags</div><input type="number" id="em-bigbags" min="0" step="1" value="0" placeholder="0"></div>
