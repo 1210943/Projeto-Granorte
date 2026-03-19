@@ -145,7 +145,7 @@ function openModal(id){
     S.materiais.forEach(m=>sm.innerHTML+=`<option value="${m.nome}">${m.nome}</option>`);
     const sb=document.getElementById('tr-baia');
     sb.innerHTML='<option value="">— Sem sugestao —</option>';
-    S.baias.filter(b=>!b.estoque).forEach(b=>{const dep=S.depositos.find(d=>d.id===b.dep);sb.innerHTML+=`<option value="${b.nome}">${b.nome}${dep?' ('+dep.nome+')':''}</option>`;});
+    S.baias.filter(b=>!b.estoques||b.estoques.length===0).forEach(b=>{const dep=S.depositos.find(d=>d.id===b.dep);sb.innerHTML+=`<option value="${b.nome}">${b.nome}${dep?' ('+dep.nome+')':''}</option>`;});
   }
 }
 function closeModal(id){document.getElementById(id).classList.add('hidden')}
@@ -169,7 +169,7 @@ function populateSelOp(selId){
 function populateAgBaias(){
   const s=document.getElementById('ag-baia');if(!s)return;
   s.innerHTML='<option value="">— Sem sugestão —</option>';
-  S.baias.filter(b=>!b.estoque).forEach(b=>{const dep=S.depositos.find(d=>d.id===b.dep);s.innerHTML+=`<option value="${b.id}">${b.nome}${dep?' ('+dep.nome+')':''}${b.material?' — '+b.material:''}</option>`;});
+  S.baias.filter(b=>!b.estoques||b.estoques.length===0).forEach(b=>{const dep=S.depositos.find(d=>d.id===b.dep);s.innerHTML+=`<option value="${b.id}">${b.nome}${dep?' ('+dep.nome+')':''}${b.material?' — '+b.material:''}</option>`;});
 }
 function populateBaixaBaias(){
   const s=document.getElementById('baixa-baia');if(!s)return;
@@ -410,7 +410,7 @@ function abrirBaiaDet(id){
   } else html+=`<div class="divider"></div><div class="empty-state">Baia livre</div>`;
   const movs=S.movimentacoes.filter(m=>m.baiaId===id);
   if(movs.length){html+=`<div class="divider"></div><div style="font-size:12px;font-weight:600;margin-bottom:6px">Últimas movimentações</div>`;
-    html+=movs.slice(-6).reverse().map(m=>`<div class="mov-item"><div style="display:flex;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${m.tipo==='entrada'?'#1D9E75':'#E24B4A'};flex-shrink:0;margin-top:3px"></div><div><div>${m.desc}</div><div style="color:var(--text2);font-size:11px">${fmtDate(m.data)} · ${m.operador}${m.nf&&m.nf!=='—'?' · NF: '+m.nf:''}</div></div></div></div>`).join('');}
+    html+=movs.slice(-6).reverse().map(m=>`<div class="mov-item"><div style="display:flex;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${m.tipo==='entrada'?'#1D9E75':'#E24B4A'};flex-shrink:0;margin-top:3px"></div><div><div>${sanitizeDesc(m.desc)}</div><div style="color:var(--text2);font-size:11px">${fmtDate(m.data)} · ${m.operador}${m.nf&&m.nf!=='—'?' · NF: '+m.nf:''}</div></div></div></div>`).join('');}
   document.getElementById('baia-det-body').innerHTML=html;
   openModal('modal-baia-det');
 }
@@ -477,6 +477,11 @@ function renderTurnoBar(){
 }
 
 function render(){
+  // Migrate all baias from legacy b.estoque (singular) to b.estoques[] (plural)
+  S.baias.forEach(function(b){
+    if(!b.estoques){b.estoques=b.estoque?[b.estoque]:[];delete b.estoque;}
+    else if(b.estoque&&b.estoques.indexOf(b.estoque)<0){b.estoques.push(b.estoque);delete b.estoque;}
+  });
   autoAvancarDescargas();
   renderTurnoBar();renderDashboard();if(document.getElementById('page-kpis').classList.contains('active'))renderKPIs();updateModuleBadges();renderConfig();updateBadge();renderDashKPIMini();
 }
@@ -488,8 +493,8 @@ function updateBadge(){
 function renderDashboard(){
   const cap=S.capDiaria||160;
   const baias=S.baias;
-  const livre=baias.filter(b=>!b.estoque).length;
-  const ocup=baias.filter(b=>b.estoque).length;
+  const livre=baias.filter(b=>!b.estoques||b.estoques.length===0).length;
+  const ocup=baias.filter(b=>b.estoques&&b.estoques.length>0).length;
   const hj=hoje();
   const capHj=getCapDia(hj);
   const pct=Math.min(100,Math.round(capHj/cap*100));
@@ -497,7 +502,7 @@ function renderDashboard(){
   const atrasados=getAtrasados();
   const pendRec=S.descargas.filter(d=>d.status==='pendente').length;
   const capDisp=Math.max(0,cap-capHj);
-  const totalTonMat=baias.reduce((s,b)=>s+(b.estoque?b.estoque.qtdAtual:0),0);
+  const totalTonMat=baias.reduce((s,b)=>s+(b.estoques||[]).reduce((t,e)=>t+e.qtdAtual,0),0);
 
   const alertEl=document.getElementById('dash-alerts');
   let alerts='';
@@ -516,7 +521,7 @@ function renderDashboard(){
   const notifs=[];
   atrasados.forEach(d=>notifs.push({tipo:'danger',msg:'Atraso: '+d.fornecedor+' — '+d.material+' (previsto '+d.hora+')'}));
   if(capHj/cap>=0.8&&capHj<=cap)notifs.push({tipo:'warning',msg:'Capacidade hoje: '+pct+'% utilizada ('+fmtKg(capHj)+'/'+fmtKg(cap)+')'});
-  S.baias.filter(b=>b.estoque&&b.cap>0&&b.estoque.qtdAtual/b.cap>0.9).forEach(b=>notifs.push({tipo:'warning',msg:'Baia '+b.nome+' quase cheia ('+Math.round(b.estoque.qtdAtual/b.cap*100)+'%)'}));
+  S.baias.filter(b=>b.estoques&&b.estoques.length>0&&b.cap>0).forEach(b=>{var tot=b.estoques.reduce(function(s,e){return s+e.qtdAtual;},0);if(tot/b.cap>0.9)notifs.push({tipo:'warning',msg:'Baia '+b.nome+' quase cheia ('+Math.round(tot/b.cap*100)+'%)'}); });
   S.descargas.filter(d=>d.data===hj&&d.status==='pendente'&&!atrasados.find(a=>a.id===d.id)).forEach(d=>notifs.push({tipo:'info',msg:'Descarga prevista: '+d.material+' — '+d.fornecedor+' as '+d.hora}));
   S.transferencias.filter(t=>t.dataTransf&&t.dataTransf===hj).forEach(t=>notifs.push({tipo:'info',msg:'Transferencia hoje: '+(t.material||t.fornecedor)+' — NF '+t.nf}));
   const nEl=document.getElementById('notif-lista');
@@ -526,10 +531,12 @@ function renderDashboard(){
   // Indicadores de materiais
   const matEl=document.getElementById('materiais-indicadores');
   const matStock={};
-  baias.filter(b=>b.estoque).forEach(b=>{
-    const key=b.estoque.fornecedorNome||'Desconhecido';
+  baias.filter(b=>b.estoques&&b.estoques.length>0).forEach(b=>{
+    b.estoques.forEach(function(eItem){
+    const key=eItem.fornecedorNome||'Desconhecido';
     if(!matStock[key])matStock[key]={qtd:0};
-    matStock[key].qtd+=b.estoque.qtdAtual;
+    matStock[key].qtd+=eItem.qtdAtual;
+    });
   });
   const matCad={};
   S.materiais.forEach(m=>{matCad[m.nome]={...m,qtdEstoque:matStock[m.nome]?matStock[m.nome].qtd:0};});
@@ -557,7 +564,7 @@ function renderDashboard(){
   else pEl.innerHTML=todasProx.slice(0,10).map(d=>'<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)"><div style="min-width:40px;font-size:11px;font-weight:600;color:var(--blue)">'+(d.hora||'—')+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+d.material+' — '+d.fornecedor+'</div><div style="font-size:11px;color:var(--text2)">'+fmtDate(d.data)+(d.toneladas?' · '+fmtKg(d.toneladas):'')+(d.nf?' · '+d.nf:'')+'</div></div><span class="badge '+(sMap[d._tipo]||'badge-gray')+'" style="flex-shrink:0">'+(sLabel[d._tipo]||d._tipo)+'</span></div>').join('');
 
   // Estoque por baia
-  const matB={};S.baias.filter(b=>b.estoque).forEach(b=>{matB[b.id]={qtd:b.estoque.qtdAtual,lote:b.estoque.lote,forn:b.estoque.fornecedorNome,baia:b.nome,nf:b.estoque.nf};});
+  const matB={};S.baias.forEach(b=>{(b.estoques||[]).forEach(function(e){matB[e.id||b.id]={qtd:e.qtdAtual,lote:e.lote,forn:e.fornecedorNome,baia:b.nome,nf:e.nf};});});
   const keysB=Object.keys(matB);
   document.getElementById('estoque-resumo').innerHTML=keysB.length?'<div style="overflow-x:auto"><table><thead><tr><th>Baia</th><th>Fornecedor / Lote</th><th>NF</th><th>Qtd atual (kg)</th></tr></thead><tbody>'+keysB.map(k=>'<tr><td style="font-weight:600">'+matB[k].baia+'</td><td>'+matB[k].forn+'<br><span style="font-size:11px;color:var(--text2)">'+(matB[k].lote||'—')+'</span></td><td><span class="tag">'+(matB[k].nf||'—')+'</span></td><td style="font-weight:600">'+fmtKg(matB[k].qtd)+'</td></tr>').join('')+'</tbody></table></div>':'<div class="empty-state">Nenhum estoque alocado nas baias</div>';
 }
@@ -671,7 +678,7 @@ function renderDepositos(){
   if(!S.depositos.length){el.innerHTML='<div class="empty-state">Nenhum depósito cadastrado. Clique em "+ Depósito" para começar.</div>';return;}
   el.innerHTML=S.depositos.map(dep=>{
     const baias=S.baias.filter(b=>b.dep===dep.id);
-    const livre=baias.filter(b=>!b.estoque).length;const ocup=baias.filter(b=>b.estoque).length;
+    const livre=baias.filter(b=>!b.estoques||b.estoques.length===0).length;const ocup=baias.filter(b=>b.estoques&&b.estoques.length>0).length;
     return`<div class="card" style="margin-bottom:8px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div><div style="font-size:13px;font-weight:600">${dep.nome}</div><div style="font-size:11px;color:var(--text2)">${dep.local||'—'}${dep.cap?' · Capacidade: '+fmtKg(dep.cap):''}</div></div>
@@ -709,7 +716,10 @@ function renderFornecedores(){
 
 function renderEstoque(){
   var el=document.getElementById('estoque-lista');if(!el)return;
-  S.baias.forEach(function(b){if(!b.estoques){b.estoques=b.estoque?[b.estoque]:[];delete b.estoque;}});
+  S.baias.forEach(function(b){
+    if(!b.estoques){b.estoques=b.estoque?[b.estoque]:[];delete b.estoque;}
+    else if(b.estoque){b.estoques.push(b.estoque);delete b.estoque;}  // merge if both exist
+  });
   // populate filter dropdowns
   var fDep=document.getElementById('est-filtro-dep');
   var fMat=document.getElementById('est-filtro-mat');
@@ -769,7 +779,7 @@ function renderEstoque(){
         +'<td style="color:var(--blue);font-size:12px">'+(e.material||e.fornecedorNome||'—')+'</td>'
         +'<td><span class="tag">'+(e.lote||'—')+'</span></td>'
         +'<td><span class="tag">'+(e.nf||'—')+'</span></td>'
-        +'<td>'+e.qtdTotal+'t</td>'
+        +'<td>'+fmtKg(e.qtdTotal)+'</td>'
         +'<td style="font-weight:600">'+fmtKg(e.qtdAtual)+'</td>'
         +'<td style="color:var(--text2)">'+fmtKg(e.qtdUsada)+'</td>'
         +'<td><div style="display:flex;align-items:center;gap:6px">'
@@ -906,6 +916,16 @@ function removerEstoqueBaia(bid,eid){
   saveState();render();
 }
 
+
+function sanitizeDesc(desc){
+  if(!desc)return desc;
+  // Convert legacy "32t" / "32.5t" / "32.000t" patterns to kg display
+  return desc.replace(/(\d+(?:[.,]\d+)?)t(?=[\s,;)\]<]|$)/g, function(match, num){
+    var n = parseFloat(num.replace(',','.').replace(/\.(?=\d{3})/g,''));
+    return fmtKg(n);
+  });
+}
+
 function renderMov(){
   const sel=document.getElementById('filtro-baia-mov');if(!sel)return;
   const curVal=sel.value;
@@ -922,7 +942,7 @@ function renderMov(){
       <td style="font-size:12px;white-space:nowrap">${fmtDate(m.data)}</td>
       <td style="font-weight:600">${m.baiaNome}</td>
       <td><span class="badge" style="background:${cMap[m.tipo]||'#888'}22;color:${cMap[m.tipo]||'#888'}">${lMap[m.tipo]||m.tipo}</span></td>
-      <td style="font-size:12px">${m.desc}</td>
+      <td style="font-size:12px">${sanitizeDesc(m.desc)}</td>
       <td style="font-size:12px"><span class="tag">${m.nf&&m.nf!=='—'?m.nf:'—'}</span></td>
       <td style="font-size:12px">${m.operador||'—'}</td>
     </tr>`).join('')}</tbody></table></div>`;
@@ -994,11 +1014,11 @@ function gerarRelatorio(tipo){
     rows=S.baixas.map(function(b){return[b.op,fmtDate(b.data),b.baiaName,b.fornecedor,b.material||'—',b.lote||'—',b.nf||'—',b.tipo,fmtKg(b.qtd),b.turno||'—',b.operador||'—'];});
   }else if(tipo==='estoque'){
     heads=['Depósito','Baia','Fornecedor','Material','Lote','NF','Qtd Total','Qtd Atual','Qtd Utilizada','Cap. Baia','% Ocupação'];
-    rows=S.baias.filter(function(b){return b.estoque;}).map(function(b){
-      var dep=S.depositos.find(function(d){return d.id===b.dep;});var e=b.estoque;
+    rows=[];S.baias.forEach(function(b){if(!b.estoques||!b.estoques.length)return;
+      var dep=S.depositos.find(function(d){return d.id===b.dep;});b.estoques.forEach(function(e){
       var pct=b.cap>0?(e.qtdAtual/b.cap*100).toFixed(1)+'%':'—';
-      return[dep?dep.nome:'—',b.nome,e.fornecedorNome,e.fornecedor,e.lote||'—',e.nf||'—',fmtKg(e.qtdTotal),fmtKg(e.qtdAtual),fmtKg(e.qtdUsada),fmtKg(b.cap),pct];
-    });
+      rows.push([dep?dep.nome:'—',b.nome,e.fornecedorNome,e.fornecedor,e.lote||'—',e.nf||'—',fmtKg(e.qtdTotal),fmtKg(e.qtdAtual),fmtKg(e.qtdUsada),fmtKg(b.cap),pct]);
+    });});
   }else if(tipo==='turnos'){
     heads=['Data','Turno','Operador','Descargas','Qtd. Recebida','Divergências'];
     var byTurno={};
@@ -1009,7 +1029,7 @@ function gerarRelatorio(tipo){
     rows=(S.ocorrencias||[]).map(function(o){return[fmtDate(o.data),o.tipoLabel||o.tipo,o.gravidadeLabel||o.gravidade,o.fornecedor||'—',o.nf||'—',o.status,o.descricao,o.acao||'—',o.operador||'—'];});
   }else if(tipo==='movimentacoes'){
     heads=['Data','Baia','Tipo','Descrição','NF','Operador'];
-    rows=S.movimentacoes.map(function(m){return[fmtDate(m.data),m.baiaNome,m.tipo,m.desc,m.nf||'—',m.operador||'—'];});
+    rows=S.movimentacoes.map(function(m){return[fmtDate(m.data),m.baiaNome,m.tipo,sanitizeDesc(m.desc),m.nf||'—',m.operador||'—'];});
   }
   if(!heads.length){alert('Tipo de relatório inválido.');return;}
   var tipoLabel={'entradas':'Entradas','saidas':'Saídas','ops':'Ordens de Produção','estoque':'Estoque','turnos':'Turnos','ocorrencias':'Ocorrências','movimentacoes':'Movimentações'}[tipo]||tipo;
@@ -1275,7 +1295,7 @@ function renderMateriais(){
   const el=document.getElementById('materiais-lista');if(!el)return;
   if(!S.materiais.length){el.innerHTML='<div class="empty-state">Nenhum material cadastrado. Clique em "+ Material" para adicionar.</div>';return;}
   el.innerHTML='<table><thead><tr><th>Código</th><th>Nome</th><th>Categoria</th><th>Unidade</th><th>Em estoque (ton)</th><th>Observações</th><th></th></tr></thead><tbody>'+S.materiais.map(m=>{
-    const qtd=S.baias.filter(b=>b.estoque&&b.estoque.fornecedorNome===m.nome).reduce((s,b)=>s+b.estoque.qtdAtual,0);
+    const qtd=S.baias.reduce((s,b)=>{(b.estoques||[]).forEach(e=>{if(e.material===m.nome||e.fornecedorNome===m.nome)s+=e.qtdAtual;});return s;},0);
     return'<tr><td><span class="tag">'+(m.codigo||'—')+'</span></td><td style="font-weight:600">'+m.nome+'</td><td style="color:var(--text2)">'+(m.categoria||'—')+'</td><td>'+m.unidade+'</td><td style="font-weight:600">'+fmtKg(qtd)+'</td><td style="font-size:12px;color:var(--text2)">'+(m.obs||'—')+'</td><td><button class="btn btn-sm btn-danger" onclick="excluirMaterial(\''+m.id+'\')">&#x2715;</button></td></tr>';
   }).join('')+'</tbody></table>';
 }
@@ -1373,7 +1393,7 @@ function abrirEditarTransf(id){
   document.getElementById('edit-tr-obs').value=t.obs||'';
   var sb=document.getElementById('edit-tr-baia');
   sb.innerHTML='<option value="">Sem sugestao</option>';
-  S.baias.filter(function(b){return !b.estoque;}).forEach(function(b){
+  S.baias.filter(function(b){return !b.estoques||b.estoques.length===0;}).forEach(function(b){
     var dep=S.depositos.find(function(d){return d.id===b.dep;});
     sb.innerHTML+='<option value="'+b.nome+'"'+(b.nome===t.baia?' selected':'')+'>'+b.nome+(dep?' ('+dep.nome+')':'')+'</option>';
   });
@@ -1421,7 +1441,7 @@ function abrirConfirmarRecebTransf(id){
   document.getElementById('conf-obs').value='';
   var sb=document.getElementById('conf-baia');
   sb.innerHTML='<option value="">Selecionar baia</option>';
-  S.baias.filter(function(b){return !b.estoque;}).forEach(function(b){
+  S.baias.filter(function(b){return !b.estoques||b.estoques.length===0;}).forEach(function(b){
     var dep=S.depositos.find(function(d){return d.id===b.dep;});
     var isSug=b.nome===t.baia;
     sb.innerHTML+='<option value="'+b.id+'"'+(isSug?' selected':'')+'>'+b.nome+(dep?' ('+dep.nome+')':'')+(isSug?' (sugerida)':'')+'</option>';
@@ -2076,7 +2096,10 @@ function renderDashKPIMini(){
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}}},scales:{y:{beginAtZero:true,grid:{color:'#00000011'},ticks:{font:{size:10}}},x:{ticks:{font:{size:9}}}}}});
   }
   // Mini chart ocupação baias
-  S.baias.forEach(function(b){if(!b.estoques){b.estoques=b.estoque?[b.estoque]:[];delete b.estoque;}});
+  S.baias.forEach(function(b){
+    if(!b.estoques){b.estoques=b.estoque?[b.estoque]:[];delete b.estoque;}
+    else if(b.estoque){b.estoques.push(b.estoque);delete b.estoque;}  // merge if both exist
+  });
   var bns=[],boc=[];
   S.baias.filter(function(b){return b.cap>0;}).forEach(function(b){
     var tot=b.estoques.reduce(function(s,e){return s+e.qtdAtual;},0);
